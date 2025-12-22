@@ -48,14 +48,7 @@ export default function Sidebar() {
             <Box sx={{ p: 2, fontWeight: 700, fontSize: '1.2rem', letterSpacing: '0.05em' }}>SHIPGPT</Box>
 
             <List>
-                <Link href="/dashboard">
-                    <ListItemButton selected={pathname === "/dashboard"}>
-                        <ListItemIcon>
-                            <DashboardIcon />
-                        </ListItemIcon>
-                        <ListItemText primary="Dashboard" />
-                    </ListItemButton>
-                </Link>
+
 
                 <Link href="/admin-management">
                     <ListItemButton selected={pathname === "/admin-management"}>
@@ -75,14 +68,7 @@ export default function Sidebar() {
                     </ListItemButton>
                 </Link>
 
-                <Link href="/pdf-management">
-                    <ListItemButton selected={pathname === "/pdf-management"}>
-                        <ListItemIcon>
-                            <GroupIcon />
-                        </ListItemIcon>
-                        <ListItemText primary="Pdf Management" />
-                    </ListItemButton>
-                </Link>
+
                 <Link href="/ship-management">
                     <ListItemButton selected={pathname === "/ship-management"}>
                         <ListItemIcon>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import DashboardLayout from "@/components/layouts/dashboardLayout";
+import Sidebar from "@/components/widgets/Sidebar";
+import Navbar from "@/components/widgets/Navbar";
 import {
     Box,
     Typography,
@@ -18,16 +19,19 @@ import {
     TextField,
     Stack,
     Chip,
-    Menu,
-    MenuItem,
-    ListItemIcon,
-    ListItemText,
-    Switch
+    Switch,
+    Divider,
+    FormControl,
+    Drawer,
+    useMediaQuery,
+    useTheme
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditIcon from "@mui/icons-material/Edit";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import CloseIcon from "@mui/icons-material/Close";
+import { COLORS } from "@/utils/enum";
 
 // Mock Data
 const INITIAL_USERS = [
@@ -38,36 +42,36 @@ const INITIAL_USERS = [
 
 export default function UserManagementLayout() {
     const [users, setUsers] = useState(INITIAL_USERS);
-
     // Modal States
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openEditModal, setOpenEditModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
 
+    // Responsive State
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
+    };
+
     // Selection State
     const [selectedUser, setSelectedUser] = useState<any>(null);
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const menuOpen = Boolean(anchorEl);
 
     // Handlers
-    const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>, user: any) => {
-        setAnchorEl(event.currentTarget);
+    const handleView = (user: any) => {
         setSelectedUser(user);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleView = () => {
         setOpenViewModal(true);
-        handleMenuClose();
     };
 
-    const handleEdit = () => {
+    const handleEditFromView = () => {
+        setOpenViewModal(false);
         setOpenEditModal(true);
-        handleMenuClose();
+    };
+
+    const handleDeleteFromView = () => {
+        setOpenViewModal(false);
+        setOpenConfirmModal(true);
     };
 
     const handleToggleStatusClick = (user: any) => {
@@ -89,13 +93,35 @@ export default function UserManagementLayout() {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 500,
+        width: { xs: '90%', sm: 500 },
         bgcolor: 'var(--card-bg)',
         color: 'var(--foreground)',
         boxShadow: 24,
         border: '1px solid var(--border)',
         p: 4,
-        outline: 'none'
+        outline: 'none',
+        fontFamily: 'var(--font-primary) !important'
+    };
+
+    const textFieldStyle = {
+        '& .MuiOutlinedInput-root': {
+            borderRadius: 0,
+            color: COLORS.WHITE,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            fontFamily: 'var(--font-primary) !important',
+            '& fieldset': { borderColor: COLORS.WHITE },
+            '&:hover fieldset': { borderColor: COLORS.WHITE },
+            '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
+            '&.Mui-disabled': {
+                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
+                '& .MuiInputBase-input': { WebkitTextFillColor: `${COLORS.WHITE} !important`, fill: COLORS.WHITE }
+            }
+        },
+        '& .MuiInputLabel-root': { color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important' },
+        '& .MuiInputLabel-root.Mui-focused': { color: COLORS.WHITE },
+        '& .MuiSelect-icon': { color: COLORS.WHITE },
+        '& .MuiInputBase-input': { fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE },
+        '& .MuiMenuItem-root': { fontFamily: 'var(--font-primary) !important' }
     };
 
     const confirmModalStyle = {
@@ -103,7 +129,7 @@ export default function UserManagementLayout() {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 400,
+        width: { xs: '90%', sm: 400 },
         bgcolor: 'var(--card-bg)',
         color: 'var(--foreground)',
         boxShadow: 24,
@@ -115,278 +141,277 @@ export default function UserManagementLayout() {
     };
 
     return (
-        <DashboardLayout>
-            {/* ... keeping previous content until Menu ... */}
-            <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="h4" fontWeight={700}>
-                    User Management
-                </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setOpenAddModal(true)}
-                    sx={{
-                        bgcolor: "var(--card-bg)",
-                        color: "var(--foreground)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 0,
-                        textTransform: "none",
-                        px: 3,
-                        py: 1.5,
-                        "&:hover": {
-                            bgcolor: "rgba(255,255,255,0.05)",
-                            border: "1px solid var(--foreground)",
-                        },
-                    }}
-                >
-                    Add User
-                </Button>
-            </Box>
-
-            {/* User Table */}
-            <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 0, bgcolor: "var(--card-bg)" }}>
-                <Table sx={{ minWidth: 650 }} aria-label="user table">
-                    <TableHead sx={{ bgcolor: "var(--card-bg)" }}>
-                        <TableRow>
-                            <TableCell sx={{ fontWeight: 600, color: "var(--foreground)" }}>Name</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: "var(--foreground)" }}>Email</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: "var(--foreground)" }}>Ships</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: "var(--foreground)" }}>Joined Date</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: "var(--foreground)" }}>Status</TableCell>
-                            <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", textAlign: 'right' }}>Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {users.map((row) => (
-                            <TableRow
-                                key={row.id}
-                                sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                            >
-                                <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)" }}>
-                                    {row.name}
-                                </TableCell>
-                                <TableCell sx={{ color: "var(--foreground)" }}>{row.email}</TableCell>
-                                <TableCell sx={{ color: "var(--foreground)" }}>{row.company}</TableCell>
-                                <TableCell sx={{ color: "var(--foreground)" }}>{row.joined}</TableCell>
-                                <TableCell>
-                                    <Switch
-                                        checked={row.status === 'Active'}
-                                        onChange={() => handleToggleStatusClick(row)}
-                                        color="success"
-                                        sx={{
-                                            '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                        }}
-                                    />
-                                </TableCell>
-                                <TableCell align="right">
-                                    <IconButton
-                                        onClick={(e) => handleMenuOpen(e, row)}
-                                        sx={{ color: "var(--foreground)" }}
-                                    >
-                                        <MoreVertIcon />
-                                    </IconButton>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-
-            {/* Action Menu */}
-            <Menu
-                anchorEl={anchorEl}
-                open={menuOpen}
-                onClose={handleMenuClose}
-                PaperProps={{
-                    sx: {
-                        borderRadius: 0,
-                        boxShadow: '0px 4px 20px rgba(0,0,0,0.1)',
-                        border: '1px solid var(--border)',
-                        minWidth: 150,
-                        bgcolor: 'var(--card-bg)',
-                        color: 'var(--foreground)'
-                    }
+        <Box sx={{ display: "flex", minHeight: "100vh" }}>
+            {/* Mobile Sidebar Drawer */}
+            <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={handleDrawerToggle}
+                ModalProps={{
+                    keepMounted: true, // Better open performance on mobile.
+                }}
+                sx={{
+                    display: { xs: 'block', md: 'none' },
+                    '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
                 }}
             >
-                <MenuItem onClick={handleView} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                    <ListItemIcon sx={{ color: 'var(--foreground)' }}><RemoveRedEyeIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ color: 'var(--foreground)' }}>View Details</ListItemText>
-                </MenuItem>
-                <MenuItem onClick={handleEdit} sx={{ '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' } }}>
-                    <ListItemIcon sx={{ color: 'var(--foreground)' }}><EditIcon fontSize="small" /></ListItemIcon>
-                    <ListItemText primaryTypographyProps={{ color: 'var(--foreground)' }}>Edit User</ListItemText>
-                </MenuItem>
-            </Menu>
+                <Sidebar />
+            </Drawer>
 
-            {/* Add User Modal */}
-            <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
-                <Box sx={modalStyle}>
-                    <Typography variant="h6" component="h2" mb={3} fontWeight={600}>
-                        Add New User
-                    </Typography>
-                    <Stack spacing={2}>
-                        <TextField label="Full Name" fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
-                        <TextField label="Email Address" type="email" fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
-                        <TextField label="Company Name" fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
-                        <TextField label="Phone Number" fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
+            {/* Desktop Sidebar – 20% */}
+            <Box sx={{ width: "20%", display: { xs: 'none', md: 'block' } }}>
+                <Sidebar />
+            </Box>
+
+            {/* Main – Responsive Width */}
+            <Box sx={{ width: { xs: "100%", md: "80%" }, flexGrow: 1 }}>
+                <Navbar onMenuClick={handleDrawerToggle} />
+                <Box sx={{ p: 3 }}>
+                    <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Typography variant="h4" fontWeight={700} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
+                            User Management
+                        </Typography>
                         <Button
                             variant="contained"
-                            fullWidth
-                            size="large"
+                            startIcon={<AddIcon />}
+                            onClick={() => setOpenAddModal(true)}
                             sx={{
-                                mt: 2,
                                 bgcolor: "var(--card-bg)",
                                 color: "var(--foreground)",
                                 border: "1px solid var(--border)",
                                 borderRadius: 0,
-                                "&:hover": { bgcolor: "rgba(255,255,255,0.05)", border: "1px solid var(--foreground)" },
-                            }}
-                            onClick={() => setOpenAddModal(false)}
-                        >
-                            Create User
-                        </Button>
-                    </Stack>
-                </Box>
-            </Modal>
-
-            {/* Edit User Modal */}
-            <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
-                <Box sx={modalStyle}>
-                    <Typography variant="h6" component="h2" mb={3} fontWeight={600}>
-                        Edit User
-                    </Typography>
-                    <Stack spacing={2}>
-                        <TextField label="Full Name" defaultValue={selectedUser?.name} fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
-                        <TextField label="Email Address" defaultValue={selectedUser?.email} type="email" fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
-                        <TextField label="Company Name" defaultValue={selectedUser?.company} fullWidth variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 0, color: 'var(--foreground)', '& fieldset': { borderColor: 'var(--border)' } }, '& .MuiInputLabel-root': { color: 'var(--text-secondary)' }, '& .MuiInputLabel-root.Mui-focused': { color: 'var(--foreground)' } }}
-                        />
-                        <Button
-                            variant="contained"
-                            fullWidth
-                            size="large"
-                            sx={{
-                                mt: 2,
-                                bgcolor: "var(--card-bg)",
-                                color: "var(--foreground)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 0,
-                                "&:hover": { bgcolor: "rgba(255,255,255,0.05)", border: "1px solid var(--foreground)" },
-                            }}
-                            onClick={() => setOpenEditModal(false)}
-                        >
-                            Save Changes
-                        </Button>
-                    </Stack>
-                </Box>
-            </Modal>
-
-            {/* View Details Modal */}
-            <Modal open={openViewModal} onClose={() => setOpenViewModal(false)}>
-                <Box sx={modalStyle}>
-                    {selectedUser && (
-                        <>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                                <Typography variant="h6" fontWeight={600}>
-                                    User Profile
-                                </Typography>
-                                <Chip label={selectedUser.status} size="small" sx={{ borderRadius: 0 }}
-                                    color={selectedUser.status === 'Active' ? 'success' : 'error'}
-                                    variant="outlined"
-                                />
-                            </Box>
-
-                            <Stack spacing={2}>
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">Full Name</Typography>
-                                    <Typography variant="body1" fontWeight={500}>{selectedUser.name}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">Email Address</Typography>
-                                    <Typography variant="body1">{selectedUser.email}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">Company</Typography>
-                                    <Typography variant="body1">{selectedUser.company}</Typography>
-                                </Box>
-                                <Box>
-                                    <Typography variant="caption" color="text.secondary">Date Joined</Typography>
-                                    <Typography variant="body1">{selectedUser.joined}</Typography>
-                                </Box>
-                            </Stack>
-
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                sx={{
-                                    mt: 4,
-                                    borderColor: "var(--border)",
-                                    color: "var(--foreground)",
-                                    borderRadius: 0,
-                                    "&:hover": { borderColor: "var(--foreground)", bgcolor: 'transparent' },
-                                }}
-                                onClick={() => setOpenViewModal(false)}
-                            >
-                                Close
-                            </Button>
-                        </>
-                    )}
-                </Box>
-            </Modal>
-
-            {/* Confirmation Pop-up */}
-            <Modal open={openConfirmModal} onClose={() => setOpenConfirmModal(false)}>
-                <Box sx={confirmModalStyle}>
-                    <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: "var(--foreground)" }}>
-                        {selectedUser?.status === "Active" ? "Disable Profile" : "Enable Profile"}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mb: 3, color: "var(--text-secondary)" }}>
-                        Are you sure you want to {selectedUser?.status === "Active" ? "disable" : "enable"} this user&#39;s profile?
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                        <Button
-                            variant="outlined"
-                            onClick={() => setOpenConfirmModal(false)}
-                            sx={{
-                                borderRadius: 0,
-                                color: 'var(--foreground)',
-                                borderColor: 'var(--foreground)',
-                                minWidth: 100,
-                                "&:hover": { borderColor: 'var(--foreground)', bgcolor: 'rgba(255, 255, 255, 0.05)' }
+                                textTransform: "none",
+                                px: 3,
+                                py: 1.5,
+                                fontFamily: 'var(--font-primary) !important',
+                                "&:hover": {
+                                    bgcolor: "rgba(255,255,255,0.05)",
+                                    border: "1px solid var(--foreground)",
+                                },
                             }}
                         >
-                            NO
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={confirmStatusChange}
-                            sx={{
-                                borderRadius: 0,
-                                bgcolor: 'var(--foreground)',
-                                color: 'var(--background)',
-                                minWidth: 100,
-                                "&:hover": { bgcolor: 'rgba(255, 255, 255, 0.9)' }
-                            }}
-                        >
-                            YES
+                            Add User
                         </Button>
                     </Box>
-                </Box>
-            </Modal>
 
-        </DashboardLayout>
+                    {/* User Table */}
+                    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 0, bgcolor: "var(--card-bg)", overflowX: 'auto' }}>
+                        <Table sx={{ minWidth: 650 }} aria-label="user table">
+                            <TableHead sx={{ bgcolor: "var(--card-bg)" }}>
+                                <TableRow>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Name</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Email</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Company</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Joined Date</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Status</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", textAlign: 'right', fontFamily: 'var(--font-primary) !important' }}>Actions</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {users.map((row) => (
+                                    <TableRow
+                                        key={row.id}
+                                        sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                                    >
+                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
+                                            {row.name}
+                                        </TableCell>
+                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.email}</TableCell>
+                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.company}</TableCell>
+                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.joined}</TableCell>
+                                        <TableCell>
+                                            <Switch
+                                                checked={row.status === 'Active'}
+                                                onChange={() => handleToggleStatusClick(row)}
+                                                color="success"
+                                                sx={{
+                                                    '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
+                                                }}
+                                            />
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <IconButton
+                                                onClick={() => handleView(row)}
+                                                sx={{ color: "var(--foreground)" }}
+                                            >
+                                                <RemoveRedEyeIcon />
+                                            </IconButton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+
+
+
+                    {/* Add User Modal */}
+                    <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
+                        <Box sx={modalStyle}>
+                            <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
+                                Add New User
+                            </Typography>
+                            <Stack spacing={2}>
+                                <TextField label="Full Name" fullWidth variant="outlined" sx={textFieldStyle} />
+                                <TextField label="Email Address" type="email" fullWidth variant="outlined" sx={textFieldStyle} />
+                                <TextField label="Company Name" fullWidth variant="outlined" sx={textFieldStyle} />
+                                <TextField label="Phone Number" fullWidth variant="outlined" sx={textFieldStyle} />
+                                <Button
+                                    variant="contained"
+                                    fullWidth
+                                    size="large"
+                                    sx={{
+                                        mt: 2,
+                                        bgcolor: COLORS.GREEN,
+                                        color: COLORS.WHITE,
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 0,
+                                        fontFamily: 'var(--font-primary) !important',
+                                        "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
+                                    }}
+                                    onClick={() => setOpenAddModal(false)}
+                                >
+                                    Create User
+                                </Button>
+                            </Stack>
+                        </Box>
+                    </Modal>
+
+                    {/* Edit User Modal */}
+                    <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
+                        <Box sx={modalStyle}>
+                            <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
+                                Edit User
+                            </Typography>
+                            <Stack spacing={2}>
+                                <TextField label="Full Name" defaultValue={selectedUser?.name} fullWidth variant="outlined" sx={textFieldStyle} />
+                                <TextField label="Email Address" defaultValue={selectedUser?.email} type="email" fullWidth variant="outlined" sx={textFieldStyle} />
+                                <TextField label="Company Name" defaultValue={selectedUser?.company} fullWidth variant="outlined" sx={textFieldStyle} />
+                                <Button
+                                    variant="contained"
+                                    fullWidth
+                                    size="large"
+                                    sx={{
+                                        mt: 2,
+                                        bgcolor: COLORS.GREEN,
+                                        color: COLORS.WHITE,
+                                        border: "1px solid var(--border)",
+                                        borderRadius: 0,
+                                        fontFamily: 'var(--font-primary) !important',
+                                        "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
+                                    }}
+                                    onClick={() => setOpenEditModal(false)}
+                                >
+                                    Save Changes
+                                </Button>
+                            </Stack>
+                        </Box>
+                    </Modal>
+
+                    {/* View Details Modal */}
+                    <Modal open={openViewModal} onClose={() => setOpenViewModal(false)}>
+                        <Box sx={modalStyle}>
+                            {selectedUser && (
+                                <>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Typography variant="h6" fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
+                                                User Profile
+                                            </Typography>
+                                            <Chip
+                                                label={selectedUser.status}
+                                                size="small"
+                                                sx={{
+                                                    borderRadius: 0,
+                                                    color: COLORS.WHITE,
+                                                    borderColor: COLORS.WHITE,
+                                                    fontFamily: 'var(--font-primary) !important'
+                                                }}
+                                                color={selectedUser.status === 'Active' ? 'success' : 'error'}
+                                                variant="outlined"
+                                            />
+                                        </Box>
+                                        <Box>
+                                            <IconButton onClick={handleEditFromView} sx={{ color: "var(--foreground)", mr: 1 }}>
+                                                <EditIcon />
+                                            </IconButton>
+                                            <IconButton onClick={handleDeleteFromView} sx={{ color: COLORS.RED }}>
+                                                <DeleteIcon />
+                                            </IconButton>
+                                            <IconButton onClick={() => setOpenViewModal(false)} sx={{ color: "var(--text-secondary)" }}>
+                                                <CloseIcon />
+                                            </IconButton>
+                                        </Box>
+                                    </Box>
+
+                                    <Stack spacing={2}>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Full Name</Typography>
+                                            <Typography variant="body1" fontWeight={500} sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.name}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Email Address</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.email}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Company</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.company}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Date Joined</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.joined}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </>
+                            )}
+                        </Box>
+                    </Modal>
+
+                    {/* Confirmation Pop-up */}
+                    <Modal open={openConfirmModal} onClose={() => setOpenConfirmModal(false)}>
+                        <Box sx={confirmModalStyle}>
+                            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
+                                {selectedUser?.status === "Active" ? "Disable Profile" : "Enable Profile"}
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 3, color: "var(--text-secondary)", fontFamily: 'var(--font-primary) !important' }}>
+                                Are you sure you want to {selectedUser?.status === "Active" ? "disable" : "enable"} this user&#39;s profile?
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => setOpenConfirmModal(false)}
+                                    sx={{
+                                        borderRadius: 0,
+                                        color: 'var(--foreground)',
+                                        borderColor: 'var(--foreground)',
+                                        minWidth: 100,
+                                        fontFamily: 'var(--font-primary) !important',
+                                        "&:hover": { borderColor: 'var(--foreground)', bgcolor: 'rgba(255, 255, 255, 0.05)' }
+                                    }}
+                                >
+                                    NO
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={confirmStatusChange}
+                                    sx={{
+                                        borderRadius: 0,
+                                        bgcolor: 'var(--foreground)',
+                                        color: 'var(--background)',
+                                        minWidth: 100,
+                                        fontFamily: 'var(--font-primary) !important',
+                                        "&:hover": { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                                    }}
+                                >
+                                    YES
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Modal>
+
+                </Box>
+            </Box>
+        </Box>
     );
 }

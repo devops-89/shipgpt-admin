@@ -1,6 +1,11 @@
-import { Box, Typography, Avatar } from "@mui/material";
+import { Box, Typography, Avatar, IconButton } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 
-export default function Navbar() {
+interface NavbarProps {
+    onMenuClick?: () => void;
+}
+
+export default function Navbar({ onMenuClick }: NavbarProps) {
     return (
         <Box
             sx={{
@@ -14,7 +19,20 @@ export default function Navbar() {
                 color: "var(--foreground)",
             }}
         >
-            <Typography fontWeight={600}>Dashboard</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                {onMenuClick && (
+                    <IconButton
+                        color="inherit"
+                        aria-label="open drawer"
+                        edge="start"
+                        onClick={onMenuClick}
+                        sx={{ display: { md: 'none' } }}
+                    >
+                        <MenuIcon />
+                    </IconButton>
+                )}
+                <Typography fontWeight={600}>ShipGPT</Typography>
+            </Box>
 
             <Box display="flex" alignItems="center" gap={1}>
                 <Typography variant="body2">ADMIN</Typography>
