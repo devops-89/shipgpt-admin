@@ -27,7 +27,8 @@ import {
     ListItemText,
     ListItemSecondaryAction,
     Divider,
-    Switch
+    Switch,
+    Drawer
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
@@ -88,6 +89,13 @@ export default function ShipManagementLayout() {
     const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const drawerWidth = 240;
+
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
+    };
 
     // Form states
     const [name, setName] = useState("");
@@ -206,7 +214,7 @@ export default function ShipManagementLayout() {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 600,
+        width: { xs: '90%', sm: 600 },
         maxHeight: '90vh',
         overflowY: 'auto',
         bgcolor: 'var(--card-bg)',
@@ -223,7 +231,7 @@ export default function ShipManagementLayout() {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 400,
+        width: { xs: '90%', sm: 400 },
         bgcolor: 'var(--card-bg)',
         color: 'var(--foreground)',
         boxShadow: 24,
@@ -238,9 +246,9 @@ export default function ShipManagementLayout() {
         '& .MuiOutlinedInput-root': {
             borderRadius: 0,
             color: COLORS.WHITE,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slightly lighter background for highlight
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             fontFamily: 'var(--font-primary) !important',
-            '& fieldset': { borderColor: COLORS.WHITE }, // White border
+            '& fieldset': { borderColor: COLORS.WHITE },
             '&:hover fieldset': { borderColor: COLORS.WHITE },
             '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
             '&.Mui-disabled': {
@@ -257,16 +265,48 @@ export default function ShipManagementLayout() {
 
     return (
         <Box sx={{ display: "flex", minHeight: "100vh" }}>
-            {/* Sidebar – 20% */}
-            <Box sx={{ width: "20%" }}>
-                <Sidebar />
+            <Box
+                component="nav"
+                sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+            >
+                {/* Mobile Drawer */}
+                <Drawer
+                    variant="temporary"
+                    open={mobileOpen}
+                    onClose={handleDrawerToggle}
+                    ModalProps={{
+                        keepMounted: true, // Better open performance on mobile.
+                    }}
+                    sx={{
+                        display: { xs: 'block', md: 'none' },
+                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+                    }}
+                >
+                    <Sidebar />
+                </Drawer>
+                {/* Desktop sidebar */}
+                <Drawer
+                    variant="permanent"
+                    sx={{
+                        display: { xs: 'none', md: 'block' },
+                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+                    }}
+                    open
+                >
+                    <Sidebar />
+                </Drawer>
             </Box>
 
-            {/* Main – 80% */}
-            <Box sx={{ width: "80%" }}>
-                <Navbar />
+            <Box
+                component="main"
+                sx={{
+                    flexGrow: 1,
+                    width: { md: `calc(100% - ${drawerWidth}px)` }
+                }}
+            >
+                <Navbar onMenuClick={handleDrawerToggle} />
                 <Box sx={{ p: 3 }}>
-                    <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Box sx={{ mb: 4, display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'start', sm: 'center' }, gap: 2 }}>
                         <Typography variant="h4" fontWeight={700} sx={commonStyles}>
                             Ship Management
                         </Typography>
@@ -275,6 +315,7 @@ export default function ShipManagementLayout() {
                             startIcon={<AddIcon />}
                             onClick={handleOpenAdd}
                             sx={{
+                                width: { xs: '100%', sm: 'auto' },
                                 bgcolor: "var(--card-bg)",
                                 color: "var(--foreground)",
                                 border: "1px solid var(--border)",

@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { scienceGothic } from "@/utils/fonts";
@@ -180,7 +181,7 @@ export default function LoginPage() {
               helperText={formik.errors.password}
             />
             <Box textAlign="right" mt={1}>
-              <Typography
+              <Typography 
                 variant="body2"
                 sx={{
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,

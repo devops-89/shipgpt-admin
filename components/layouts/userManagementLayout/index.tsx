@@ -42,23 +42,15 @@ const INITIAL_USERS = [
 
 export default function UserManagementLayout() {
     const [users, setUsers] = useState(INITIAL_USERS);
-    // Modal States
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openEditModal, setOpenEditModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
-
-    // Responsive State
     const [mobileOpen, setMobileOpen] = useState(false);
-
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
-
-    // Selection State
     const [selectedUser, setSelectedUser] = useState<any>(null);
-
-    // Handlers
     const handleView = (user: any) => {
         setSelectedUser(user);
         setOpenViewModal(true);
@@ -148,7 +140,7 @@ export default function UserManagementLayout() {
                 open={mobileOpen}
                 onClose={handleDrawerToggle}
                 ModalProps={{
-                    keepMounted: true, // Better open performance on mobile.
+                    keepMounted: true,  
                 }}
                 sx={{
                     display: { xs: 'block', md: 'none' },
