@@ -1,5 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { authControllers } from "@/api/auth";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -23,14 +26,9 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import { COLORS } from "@/utils/enum";
-const MOCK_ADMINS = [
-    { id: 1, name: "Yash Sharma", email: "yash@shippgpt.com", role: "Super Admin", status: "Active" },
-    { id: 2, name: "Rahul Verma", email: "rahul@shippgpt.com", role: "Admin", status: "Active" },
-    { id: 3, name: "Priya Singh", email: "priya@shippgpt.com", role: "Editor", status: "Inactive" },
-];
 
 export default function AdminManagementLayout() {
-    const [admins, setAdmins] = useState(MOCK_ADMINS);
+    const [admins, setAdmins] = useState<any[]>([]);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
@@ -43,7 +41,6 @@ export default function AdminManagementLayout() {
         setSelectedAdmin(null);
         setOpenViewModal(false);
     };
-
     const handleToggleStatusClick = (admin: any) => {
         setSelectedAdmin(admin);
         setOpenConfirmModal(true);
@@ -110,17 +107,93 @@ export default function AdminManagementLayout() {
         textAlign: 'center'
     };
 
+    const validationSchema = Yup.object({
+        firstName: Yup.string().required("First Name is required"),
+        lastName: Yup.string().required("Last Name is required"),
+        email: Yup.string().email("Invalid email address").required("Email is required"),
+        password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
+    });
+
+    const formik = useFormik({
+        initialValues: {
+            firstName: "",
+            lastName: "",
+            email: "",
+            password: "",
+        },
+        validationSchema: validationSchema,
+        onSubmit: async (values, { setSubmitting, setErrors }) => {
+            try {
+                await authControllers.createAdmin(values);
+                setOpenAddModal(false);
+                alert("Admin created successfully!");
+                formik.resetForm();
+            } catch (error: any) {
+                console.error("Error creating admin:", error);
+                if (error.response && error.response.data && error.response.data.errors) {
+                    // Start of Selection
+                    const apiErrors = error.response.data.errors;
+                    // Try to map array of strings to fields if possible, but API returns array of messages like "email must be an email"
+                    // If it returned object { email: "error" }, we could use setErrors.
+                    // Since it returns array of strings, we'll just alert the first one or join them.
+                    alert(apiErrors.join("\n"));
+                } else {
+                    alert(error.response?.data?.message || "Failed to create admin");
+                }
+            } finally {
+                setSubmitting(false);
+            }
+        },
+    });
+
+    const handleOpenAddModal = () => {
+        formik.resetForm();
+        setOpenAddModal(true);
+    };
+
+    const handleCloseAddModal = () => {
+        setOpenAddModal(false);
+        formik.resetForm();
+    };
+
+    const fetchAdmins = async () => {
+        try {
+            const response = await authControllers.getUsers({ user_role: 'ADMIN' });
+            console.log("Admins fetched raw:", response.data);
+
+            let data: any[] = [];
+            // Parse response to find the array
+            // Based on screenshot: structure is { data: { docs: [...] } }
+            if (response.data?.data?.docs && Array.isArray(response.data.data.docs)) {
+                data = response.data.data.docs;
+            }
+            else {
+                console.warn("API did not return an array. Response:", response.data);
+                data = [];
+            }
+
+            setAdmins(data);
+        } catch (error) {
+            console.error("Failed to fetch admins:", error);
+            setAdmins([]);
+        }
+    };
+
+    useEffect(() => {
+        fetchAdmins();
+    }, []);
+
     return (
-        <Box sx={{ display: "flex", minHeight: "100vh" }}>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
             {/* Sidebar – 20% */}
-            <Box sx={{ width: "20%" }}>
+            <Box sx={{ width: "20%", height: "100%", overflowY: "auto", borderRight: "1px solid var(--border)" }}>
                 <Sidebar />
             </Box>
 
             {/* Main – 80% */}
-            <Box sx={{ width: "80%" }}>
+            <Box sx={{ width: "80%", height: "100%", display: "flex", flexDirection: "column" }}>
                 <Navbar />
-                <Box sx={{ p: 3 }}>
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto" }}>
                     <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <Typography variant="h4" fontWeight={700} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
                             Admin Management
@@ -128,7 +201,7 @@ export default function AdminManagementLayout() {
                         <Button
                             variant="contained"
                             startIcon={<AddIcon />}
-                            onClick={() => setOpenAddModal(true)}
+                            onClick={handleOpenAddModal}
                             sx={{
                                 bgcolor: "var(--card-bg)",
                                 color: "var(--foreground)",
@@ -161,18 +234,18 @@ export default function AdminManagementLayout() {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {admins.map((row) => (
+                                {Array.isArray(admins) && admins.map((row) => (
                                     <TableRow
-                                        key={row.id}
+                                        key={row.id || row._id || Math.random()} // Fallback key
                                         sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                                     >
                                         <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
-                                            {row.name}
+                                            {row.name || `${row.firstName} ${row.lastName}`}
                                         </TableCell>
                                         <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.email}</TableCell>
                                         <TableCell>
                                             <Chip
-                                                label={row.role}
+                                                label={row.role || row.user_role || "Admin"}
                                                 size="small"
                                                 sx={{
                                                     borderRadius: 0,
@@ -185,7 +258,7 @@ export default function AdminManagementLayout() {
                                         </TableCell>
                                         <TableCell>
                                             <Switch
-                                                checked={row.status === 'Active'}
+                                                checked={row.status === 'Active' || row.isActive === true}
                                                 onChange={() => handleToggleStatusClick(row)}
                                                 color="success"
                                                 sx={{
@@ -205,33 +278,89 @@ export default function AdminManagementLayout() {
                     </TableContainer>
 
                     {/* Add Admin Modal */}
-                    <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
+                    <Modal open={openAddModal} onClose={handleCloseAddModal}>
                         <Box sx={modalStyle}>
                             <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
                                 Add New Admin
                             </Typography>
-                            <Stack spacing={2}>
-                                <TextField label="Full Name" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Email Address" type="email" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Role" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <Button
-                                    variant="contained"
-                                    fullWidth
-                                    size="large"
-                                    sx={{
-                                        mt: 2,
-                                        bgcolor: COLORS.GREEN,
-                                        color: COLORS.WHITE,
-                                        border: "1px solid var(--border)",
-                                        borderRadius: 0,
-                                        fontFamily: 'var(--font-primary) !important',
-                                        "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
-                                    }}
-                                    onClick={() => setOpenAddModal(false)}
-                                >
-                                    Create Admin
-                                </Button>
-                            </Stack>
+                            <form onSubmit={formik.handleSubmit}>
+                                <Stack spacing={2}>
+                                    <Stack direction="row" spacing={2}>
+                                        <TextField
+                                            label="First Name"
+                                            name="firstName"
+                                            fullWidth
+                                            autoComplete="off"
+                                            variant="outlined"
+                                            sx={textFieldStyle}
+                                            value={formik.values.firstName}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            error={formik.touched.firstName && Boolean(formik.errors.firstName)}
+                                            helperText={formik.touched.firstName && formik.errors.firstName}
+                                        />
+                                        <TextField
+                                            label="Last Name"
+                                            name="lastName"
+                                            fullWidth
+                                            autoComplete="off"
+                                            variant="outlined"
+                                            sx={textFieldStyle}
+                                            value={formik.values.lastName}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            error={formik.touched.lastName && Boolean(formik.errors.lastName)}
+                                            helperText={formik.touched.lastName && formik.errors.lastName}
+                                        />
+                                    </Stack>
+                                    <TextField
+                                        label="Email Address"
+                                        name="email"
+                                        type="email"
+                                        fullWidth
+                                        autoComplete="off"
+                                        variant="outlined"
+                                        sx={textFieldStyle}
+                                        value={formik.values.email}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        error={formik.touched.email && Boolean(formik.errors.email)}
+                                        helperText={formik.touched.email && formik.errors.email}
+                                    />
+                                    <TextField
+                                        label="Password"
+                                        name="password"
+                                        type="password"
+                                        fullWidth
+                                        autoComplete="new-password"
+                                        variant="outlined"
+                                        sx={textFieldStyle}
+                                        value={formik.values.password}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        error={formik.touched.password && Boolean(formik.errors.password)}
+                                        helperText={formik.touched.password && formik.errors.password}
+                                    />
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        fullWidth
+                                        size="large"
+                                        disabled={formik.isSubmitting}
+                                        sx={{
+                                            mt: 2,
+                                            bgcolor: COLORS.GREEN,
+                                            color: COLORS.WHITE,
+                                            border: "1px solid var(--border)",
+                                            borderRadius: 0,
+                                            fontFamily: 'var(--font-primary) !important',
+                                            "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
+                                        }}
+                                    >
+                                        {formik.isSubmitting ? "Creating..." : "Create Admin"}
+                                    </Button>
+                                </Stack>
+                            </form>
                         </Box>
                     </Modal>
 

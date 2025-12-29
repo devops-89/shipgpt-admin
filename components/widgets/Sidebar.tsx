@@ -12,6 +12,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import DirectionsBoatIcon from "@mui/icons-material/DirectionsBoat";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -75,6 +76,24 @@ export default function Sidebar() {
                             <DirectionsBoatIcon />
                         </ListItemIcon>
                         <ListItemText primary="Ship Management" />
+                    </ListItemButton>
+                </Link>
+
+                <Link href="/crew-management">
+                    <ListItemButton selected={pathname === "/crew-management"}>
+                        <ListItemIcon>
+                            <GroupIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Crew Management" />
+                    </ListItemButton>
+                </Link>
+
+                <Link href="/superintendent-management">
+                    <ListItemButton selected={pathname === "/superintendent-management"}>
+                        <ListItemIcon>
+                            <SupervisorAccountIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Superintendent" />
                     </ListItemButton>
                 </Link>
             </List>

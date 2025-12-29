@@ -11,7 +11,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { scienceGothic } from "@/utils/fonts";
@@ -28,20 +27,33 @@ export default function LoginPage() {
       password: "",
     },
     validationSchema: loginValidationSchema,
-     onSubmit: async (values) => {
-  try {
-    const response = await authControllers.login(values);
-    localStorage.setItem(
-      "accessToken",
-      response.data.data.accessToken
-    );
-    router.push("/dashboard");
-  } catch (error) {
-    console.error("Login failed", error);
-  }
-},
+    onSubmit: async (values) => {
+      try {
+        const response = await authControllers.login(values);
+        console.log("LOGIN RESPONSE FULL:", response);
+        console.log("LOGIN RESPONSE DATA:", response.data);
 
+        // Robust check for token in various common locations
+        const token =
+          // response.data?.access_token ||
+          response.data?.data?.access_token;
+
+        if (token) {
+          console.log("Saving Access Token:", token);
+          localStorage.setItem("accessToken", token);
+          router.push("/dashboard");
+        } else {
+          console.warn("Available keys in response:", Object.keys(response.data || {}));
+          console.error("Access Token NOT found. Response was:", response.data);
+          alert("Login succeeded but token missing. check console for 'LOGIN RESPONSE DATA'");
+        }
+      } catch (error) {
+        console.error("Login failed", error);
+        alert("Login failed. Please check your credentials.");
+      }
+    },
   });
+
   return (
     <Box
       sx={{
@@ -56,14 +68,14 @@ export default function LoginPage() {
         backgroundAttachment: "fixed",
         backgroundRepeat: "no-repeat",
         overflow: "hidden",
-        
+
       }}
     >
       <Card
         sx={{
           width: 410,
           backdropFilter: "blur(8px)",
-          background: "rgba(255, 255, 255, 0.15)", 
+          background: "rgba(255, 255, 255, 0.2)",
           color: COLORS.WHITE,
           borderRadius: 4,
           boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
@@ -181,7 +193,7 @@ export default function LoginPage() {
               helperText={formik.errors.password}
             />
             <Box textAlign="right" mt={1}>
-              <Typography 
+              <Typography
                 variant="body2"
                 sx={{
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,

@@ -218,7 +218,7 @@ export default function ShipManagementLayout() {
         maxHeight: '90vh',
         overflowY: 'auto',
         bgcolor: 'var(--card-bg)',
-        color: 'var(--foreground)',
+        // color: 'var(--foreground)',
         boxShadow: 24,
         border: '1px solid var(--border)',
         p: 4,

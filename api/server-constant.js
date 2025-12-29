@@ -1,6 +1,4 @@
-const baseUrl = "https://3swkh3wf-4000.inc1.devtunnels.ms";
-
+const baseUrl = "http://13.49.158.124/";
 export const serverConstants = {
-    authenticationUrls: `${baseUrl}/api/auth`,
-    
+    authenticationUrls: `${baseUrl}api/auth`,
 };
