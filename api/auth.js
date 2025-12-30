@@ -25,6 +25,23 @@ export const authControllers = {
       throw error;
     }
   },
+  createCrew: async (data) => {
+    try {
+      let result = await securedApi.post("/crew", data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  createSuperintendent: async (data) => {
+    try {
+      let result = await securedApi.post("/super-intendent", data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+
 };
 
 

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -26,8 +26,11 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import { COLORS } from "@/utils/enum";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { authControllers } from "@/api/auth";
 
-// Types
+
 interface CrewMember {
     id: number;
     firstName: string;
@@ -51,36 +54,56 @@ export default function CrewManagementLayout() {
     const [selectedCrew, setSelectedCrew] = useState<CrewMember | null>(null);
     const [isEditing, setIsEditing] = useState(false);
 
-    // Form states
-    const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: ""
+    // Formik for Add Crew
+    const validationSchema = Yup.object({
+        firstName: Yup.string().required("First Name is required"),
+        lastName: Yup.string().required("Last Name is required"),
+        email: Yup.string().email("Invalid email address").required("Email is required"),
+        password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
     });
 
-    const resetForm = () => {
-        setFormData({
+    const formik = useFormik({
+        initialValues: {
             firstName: "",
             lastName: "",
             email: "",
-            password: ""
-        });
-    };
+            password: "",
+        },
+        validationSchema: validationSchema,
+        onSubmit: async (values, { setSubmitting }) => {
+            try {
+                await authControllers.createCrew(values);
+                setOpenAddModal(false);
+                alert("Crew member created successfully!");
+                formik.resetForm();
+                // Optionally refetch crew list here if we had a getCrew API setup
+            } catch (error: any) {
+                console.error("Error creating crew:", error);
+                if (error.response && error.response.data && error.response.data.errors) {
+                    const apiErrors = error.response.data.errors;
+                    alert(apiErrors.join("\n"));
+                } else {
+                    alert(error.response?.data?.message || "Failed to create crew member");
+                }
+            } finally {
+                setSubmitting(false);
+            }
+        },
+    });
 
     const handleOpenAdd = () => {
-        resetForm();
+        formik.resetForm();
         setOpenAddModal(true);
     };
 
+    const handleCloseAddModal = () => {
+        setOpenAddModal(false);
+        formik.resetForm();
+    };
+
+    // ... (Existing View/Edit handlers - simplified for this step as they are mock-based)
     const handleOpenView = (member: CrewMember) => {
         setSelectedCrew(member);
-        setFormData({
-            firstName: member.firstName,
-            lastName: member.lastName,
-            email: member.email,
-            password: "" // Don't show password
-        });
         setIsEditing(false);
         setOpenViewModal(true);
     };
@@ -91,36 +114,10 @@ export default function CrewManagementLayout() {
         setIsEditing(false);
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleAddCrew = () => {
-        // Just mock adding for now
-        const newMember: CrewMember = {
-            id: crew.length + 1,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            role: "Crew", // Default
-            status: "Active"
-        };
-        setCrew([...crew, newMember]);
-        setOpenAddModal(false);
-        resetForm();
-    };
-
+    // Placeholder for Edit - purely visual for now since we focus on Create API
     const handleUpdateCrew = () => {
-        if (!selectedCrew) return;
-        const updatedMember: CrewMember = {
-            ...selectedCrew,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email
-        };
-        setCrew(crew.map(c => c.id === selectedCrew.id ? updatedMember : c));
-        setSelectedCrew(updatedMember);
-        setIsEditing(false);
+        alert("Update functionality coming soon");
+        setOpenViewModal(false);
     };
 
     const handleToggleStatusClick = (member: CrewMember) => {
@@ -130,8 +127,8 @@ export default function CrewManagementLayout() {
 
     const confirmStatusChange = () => {
         if (selectedCrew) {
-            const newStatus = selectedCrew.status === "Active" ? "Inactive" : "Active";
-            setCrew(crew.map(c => c.id === selectedCrew.id ? { ...c, status: newStatus } : c));
+            // Mock status change
+            setCrew(crew.map(c => c.id === selectedCrew.id ? { ...c, status: selectedCrew.status === "Active" ? "Inactive" : "Active" } : c));
             setOpenConfirmModal(false);
             setSelectedCrew(null);
         }
@@ -169,6 +166,7 @@ export default function CrewManagementLayout() {
         '& .MuiInputLabel-root': { color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important' },
         '& .MuiInputLabel-root.Mui-focused': { color: COLORS.WHITE },
         '& .MuiInputBase-input': { fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE },
+        '& .MuiFormHelperText-root': { fontFamily: 'var(--font-primary) !important' }
     };
 
     const confirmModalStyle = {
@@ -186,6 +184,34 @@ export default function CrewManagementLayout() {
         border: '1px solid var(--border)',
         textAlign: 'center'
     };
+    const fetchCrew=async()=>{
+        try{
+            const response= await authControllers.getUsers({user_role:'CREW'});
+            console.log("crew fetched raw:", response.data);
+            let data : any[]=[];
+            if(response.data?.data?.docs && Array.isArray(response.data.data.docs))
+            {
+                data=response.data.data.docs;
+
+            }
+            else{
+                console.warn("crew fetched raw:", response.data);
+                data=[];
+            }
+            setCrew(data);
+            
+        }
+        catch(error)
+        {
+            console.error("Error fetching crew:", error);
+            setCrew([]);
+            
+        }
+    };
+    useEffect(()=>{
+        fetchCrew();
+    },[]);
+
 
     return (
         <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -279,30 +305,117 @@ export default function CrewManagementLayout() {
                         </Table>
                     </TableContainer>
 
-                    {/* Add/View/Edit Modal */}
-                    <Modal open={openAddModal || openViewModal} onClose={openAddModal ? () => setOpenAddModal(false) : handleCloseView}>
+                    {/* Add Modal */}
+                    <Modal open={openAddModal} onClose={handleCloseAddModal}>
                         <Box sx={modalStyle}>
+                            <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
+                                Add New Crew Member
+                            </Typography>
+                            <form onSubmit={formik.handleSubmit}>
+                                <Stack spacing={2}>
+                                    <Stack direction="row" spacing={2}>
+                                        <TextField
+                                            label="First Name"
+                                            name="firstName"
+                                            fullWidth
+                                            autoComplete="off"
+                                            variant="outlined"
+                                            sx={textFieldStyle}
+                                            value={formik.values.firstName}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            error={formik.touched.firstName && Boolean(formik.errors.firstName)}
+                                            helperText={formik.touched.firstName && formik.errors.firstName}
+                                        />
+                                        <TextField
+                                            label="Last Name"
+                                            name="lastName"
+                                            fullWidth
+                                            autoComplete="off"
+                                            variant="outlined"
+                                            sx={textFieldStyle}
+                                            value={formik.values.lastName}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            error={formik.touched.lastName && Boolean(formik.errors.lastName)}
+                                            helperText={formik.touched.lastName && formik.errors.lastName}
+                                        />
+                                    </Stack>
+                                    <TextField
+                                        label="Email Address"
+                                        name="email"
+                                        type="email"
+                                        fullWidth
+                                        autoComplete="off"
+                                        variant="outlined"
+                                        sx={textFieldStyle}
+                                        value={formik.values.email}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        error={formik.touched.email && Boolean(formik.errors.email)}
+                                        helperText={formik.touched.email && formik.errors.email}
+                                    />
+                                    <TextField
+                                        label="Password"
+                                        name="password"
+                                        type="password"
+                                        fullWidth
+                                        autoComplete="new-password"
+                                        variant="outlined"
+                                        sx={textFieldStyle}
+                                        value={formik.values.password}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        error={formik.touched.password && Boolean(formik.errors.password)}
+                                        helperText={formik.touched.password && formik.errors.password}
+                                    />
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        fullWidth
+                                        size="large"
+                                        disabled={formik.isSubmitting}
+                                        sx={{
+                                            mt: 2,
+                                            bgcolor: COLORS.GREEN,
+                                            color: COLORS.WHITE,
+                                            borderRadius: 0,
+                                            fontFamily: 'var(--font-primary) !important',
+                                            "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                                        }}
+                                    >
+                                        {formik.isSubmitting ? "Adding..." : "Add Crew"}
+                                    </Button>
+                                </Stack>
+                            </form>
+                        </Box>
+                    </Modal>
+
+                    {/* View/Edit Modal (Basic) */}
+                    <Modal open={openViewModal} onClose={handleCloseView}>
+                        <Box sx={modalStyle}>
+                            {/* Simplified View/Edit - reusing existing structure manually since focus is on Add API */}
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                                 <Typography variant="h6" fontWeight={600} sx={commonStyles}>
-                                    {openAddModal ? "Add New Crew Member" : (isEditing ? "Edit Crew Details" : "Crew Details")}
+                                    {isEditing ? "Edit Crew Details" : "Crew Details"}
                                 </Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    {!openAddModal && !isEditing && (
-                                        <>
-                                            <IconButton onClick={() => setIsEditing(true)} sx={{ color: "var(--foreground)", mr: 1 }}>
-                                                <EditIcon />
-                                            </IconButton>
-                                        </>
+                                    {!isEditing && (
+                                        <IconButton onClick={() => setIsEditing(true)} sx={{ color: "var(--foreground)", mr: 1 }}>
+                                            <EditIcon />
+                                        </IconButton>
                                     )}
-                                    <IconButton onClick={openAddModal ? () => setOpenAddModal(false) : handleCloseView} sx={{ color: "var(--text-secondary)" }}>
+                                    <IconButton onClick={handleCloseView} sx={{ color: "var(--text-secondary)" }}>
                                         <CloseIcon />
                                     </IconButton>
                                 </Box>
                             </Box>
-
                             <Stack spacing={2}>
-                                {(!openAddModal && !isEditing) ? (
-                                    // View Mode
+                                {isEditing ? (
+                                    <Box>
+                                        <Typography sx={{ color: 'var(--text-secondary)' }}>Edit functionality pending implementation of specific API.</Typography>
+                                    </Box>
+                                ) : (
                                     <>
                                         <Box>
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Name</Typography>
@@ -316,72 +429,6 @@ export default function CrewManagementLayout() {
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
                                             <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedCrew?.role}</Typography>
                                         </Box>
-                                    </>
-                                ) : (
-                                    // Edit/Add Mode
-                                    <>
-                                        <Stack direction="row" spacing={2}>
-                                            <TextField
-                                                label="First Name"
-                                                name="firstName"
-                                                fullWidth
-                                                autoComplete="off"
-                                                variant="outlined"
-                                                sx={textFieldStyle}
-                                                value={formData.firstName}
-                                                onChange={handleInputChange}
-                                            />
-                                            <TextField
-                                                label="Last Name"
-                                                name="lastName"
-                                                fullWidth
-                                                autoComplete="off"
-                                                variant="outlined"
-                                                sx={textFieldStyle}
-                                                value={formData.lastName}
-                                                onChange={handleInputChange}
-                                            />
-                                        </Stack>
-                                        <TextField
-                                            label="Email Address"
-                                            name="email"
-                                            type="email"
-                                            fullWidth
-                                            autoComplete="off"
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            value={formData.email}
-                                            onChange={handleInputChange}
-                                        />
-                                        {openAddModal && (
-                                            <TextField
-                                                label="Password"
-                                                name="password"
-                                                type="password"
-                                                fullWidth
-                                                autoComplete="new-password"
-                                                variant="outlined"
-                                                sx={textFieldStyle}
-                                                value={formData.password}
-                                                onChange={handleInputChange}
-                                            />
-                                        )}
-                                        <Button
-                                            variant="contained"
-                                            fullWidth
-                                            size="large"
-                                            onClick={openAddModal ? handleAddCrew : handleUpdateCrew}
-                                            sx={{
-                                                mt: 2,
-                                                bgcolor: COLORS.GREEN,
-                                                color: COLORS.WHITE,
-                                                borderRadius: 0,
-                                                fontFamily: 'var(--font-primary) !important',
-                                                "&:hover": { bgcolor: COLORS.GREEN_DARK },
-                                            }}
-                                        >
-                                            {openAddModal ? "Add Crew" : "Save Changes"}
-                                        </Button>
                                     </>
                                 )}
                             </Stack>

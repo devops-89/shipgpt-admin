@@ -26,7 +26,6 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import { COLORS } from "@/utils/enum";
-
 export default function AdminManagementLayout() {
     const [admins, setAdmins] = useState<any[]>([]);
     const [openAddModal, setOpenAddModal] = useState(false);
@@ -131,11 +130,7 @@ export default function AdminManagementLayout() {
             } catch (error: any) {
                 console.error("Error creating admin:", error);
                 if (error.response && error.response.data && error.response.data.errors) {
-                    // Start of Selection
                     const apiErrors = error.response.data.errors;
-                    // Try to map array of strings to fields if possible, but API returns array of messages like "email must be an email"
-                    // If it returned object { email: "error" }, we could use setErrors.
-                    // Since it returns array of strings, we'll just alert the first one or join them.
                     alert(apiErrors.join("\n"));
                 } else {
                     alert(error.response?.data?.message || "Failed to create admin");
@@ -155,30 +150,24 @@ export default function AdminManagementLayout() {
         setOpenAddModal(false);
         formik.resetForm();
     };
-
     const fetchAdmins = async () => {
         try {
             const response = await authControllers.getUsers({ user_role: 'ADMIN' });
             console.log("Admins fetched raw:", response.data);
-
             let data: any[] = [];
-            // Parse response to find the array
-            // Based on screenshot: structure is { data: { docs: [...] } }
             if (response.data?.data?.docs && Array.isArray(response.data.data.docs)) {
                 data = response.data.data.docs;
             }
             else {
-                console.warn("API did not return an array. Response:", response.data);
+                console.warn("API did not return an array Response:", response.data);
                 data = [];
             }
-
             setAdmins(data);
         } catch (error) {
             console.error("Failed to fetch admins:", error);
             setAdmins([]);
         }
     };
-
     useEffect(() => {
         fetchAdmins();
     }, []);
@@ -236,7 +225,7 @@ export default function AdminManagementLayout() {
                             <TableBody>
                                 {Array.isArray(admins) && admins.map((row) => (
                                     <TableRow
-                                        key={row.id || row._id || Math.random()} // Fallback key
+                                        key={row.id || row._id || Math.random()}
                                         sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                                     >
                                         <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>

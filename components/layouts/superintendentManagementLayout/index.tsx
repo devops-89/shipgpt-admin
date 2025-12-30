@@ -1,7 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { authControllers } from "@/api/auth";
 import {
     Box,
     Typography,
@@ -25,7 +28,6 @@ import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { COLORS } from "@/utils/enum";
-
 // Types
 interface Superintendent {
     id: number;
@@ -36,90 +38,124 @@ interface Superintendent {
     status: string;
 }
 
-const MOCK_SUPERINTENDENTS: Superintendent[] = [
-    { id: 1, firstName: "Robert", lastName: "Wilson", email: "robert.w@shippgpt.com", role: "Senior Superintendent", status: "Active" },
-    { id: 2, firstName: "Alice", lastName: "Brown", email: "alice.b@shippgpt.com", role: "Superintendent", status: "Active" },
-    { id: 3, firstName: "David", lastName: "Lee", email: "david.l@shippgpt.com", role: "Junior Superintendent", status: "Inactive" },
-];
 
 export default function SuperintendentManagementLayout() {
-    const [superintendents, setSuperintendents] = useState<Superintendent[]>(MOCK_SUPERINTENDENTS);
+    const [superintendents, setSuperintendents] = useState<Superintendent[]>([]);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
     const [selectedSuperintendent, setSelectedSuperintendent] = useState<Superintendent | null>(null);
     const [isEditing, setIsEditing] = useState(false);
 
-    // Form states
-    const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: ""
+    const validationSchema = Yup.object({
+        firstName: Yup.string().required("First Name is required"),
+        lastName: Yup.string().required("Last Name is required"),
+        email: Yup.string().email("Invalid email address").required("Email is required"),
+        password: Yup.string().min(6, "Password must be at least 6 characters").when('isEditing', {
+            is: true,
+            then: (schema) => schema.optional(),
+            otherwise: (schema) => schema.required("Password is required"),
+        }),
     });
 
-    const resetForm = () => {
-        setFormData({
+    const formik = useFormik({
+        initialValues: {
             firstName: "",
             lastName: "",
             email: "",
-            password: ""
-        });
+            password: "",
+        },
+        validationSchema: validationSchema,
+        onSubmit: async (values, { setSubmitting, resetForm }) => {
+            if (isEditing && selectedSuperintendent) {
+                const updatedMember: Superintendent = {
+                    ...selectedSuperintendent,
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    email: values.email
+                };
+                setSuperintendents(superintendents.map(c => c.id === selectedSuperintendent.id ? updatedMember : c));
+                setSelectedSuperintendent(updatedMember);
+                setIsEditing(false);
+                setSubmitting(false);
+            } else {
+
+                try {
+                    await authControllers.createSuperintendent(values);
+                    setOpenAddModal(false);
+                    alert("Superintendent created successfully!");
+                    resetForm();
+                    fetchSuperintendents();
+                } catch (error: any) {
+                    console.error("Error creating superintendent:", error);
+                    if (error.response && error.response.data && error.response.data.errors) {
+                        alert(error.response.data.errors.join("\n"));
+                    } else {
+                        alert(error.response?.data?.message || "Failed to create superintendent");
+                    }
+                } finally {
+                    setSubmitting(false);
+                }
+            }
+        },
+    });
+
+    const fetchSuperintendents = async () => {
+        try {
+            const response = await authControllers.getUsers({ user_role: 'SUPERINTENDENT' });
+            let data: any[] = [];
+            if (response.data?.data?.docs && Array.isArray(response.data.data.docs)) {
+                data = response.data.data.docs;
+            } else {
+                data = [];
+            }
+            const mappedData = data.map((item: any) => ({
+                id: item.id || item._id,
+                firstName: item.firstName,
+                lastName: item.lastName,
+                email: item.email,
+                role: item.role || item.user_role || "Superintendent",
+                status: item.status || (item.isActive ? "Active" : "Inactive")
+            }));
+            setSuperintendents(mappedData);
+        } catch (error) {
+            console.error("Failed to fetch superintendents:", error);
+        }
     };
 
+    useEffect(() => {
+        fetchSuperintendents();
+    }, []);
+
     const handleOpenAdd = () => {
-        resetForm();
+        formik.resetForm();
+        setIsEditing(false);
         setOpenAddModal(true);
     };
 
     const handleOpenView = (member: Superintendent) => {
         setSelectedSuperintendent(member);
-        setFormData({
-            firstName: member.firstName,
-            lastName: member.lastName,
-            email: member.email,
-            password: "" // Don't show password
-        });
         setIsEditing(false);
         setOpenViewModal(true);
+    };
+
+    const handleEditClick = () => {
+        if (selectedSuperintendent) {
+            formik.setValues({
+                firstName: selectedSuperintendent.firstName,
+                lastName: selectedSuperintendent.lastName,
+                email: selectedSuperintendent.email,
+                password: "" 
+            });
+            setIsEditing(true);
+        }
     };
 
     const handleCloseView = () => {
         setSelectedSuperintendent(null);
         setOpenViewModal(false);
         setIsEditing(false);
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleAddSuperintendent = () => {
-        // Just mock adding for now
-        const newMember: Superintendent = {
-            id: superintendents.length + 1,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email,
-            role: "Superintendent", // Default
-            status: "Active"
-        };
-        setSuperintendents([...superintendents, newMember]);
-        setOpenAddModal(false);
-        resetForm();
-    };
-
-    const handleUpdateSuperintendent = () => {
-        if (!selectedSuperintendent) return;
-        const updatedMember: Superintendent = {
-            ...selectedSuperintendent,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            email: formData.email
-        };
-        setSuperintendents(superintendents.map(c => c.id === selectedSuperintendent.id ? updatedMember : c));
-        setSelectedSuperintendent(updatedMember);
-        setIsEditing(false);
+        formik.resetForm();
     };
 
     const handleToggleStatusClick = (member: Superintendent) => {
@@ -288,7 +324,7 @@ export default function SuperintendentManagementLayout() {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     {!openAddModal && !isEditing && (
                                         <>
-                                            <IconButton onClick={() => setIsEditing(true)} sx={{ color: "var(--foreground)", mr: 1 }}>
+                                            <IconButton onClick={handleEditClick} sx={{ color: "var(--foreground)", mr: 1 }}>
                                                 <EditIcon />
                                             </IconButton>
                                         </>
@@ -318,70 +354,85 @@ export default function SuperintendentManagementLayout() {
                                     </>
                                 ) : (
                                     // Edit/Add Mode
-                                    <>
-                                        <Stack direction="row" spacing={2}>
+                                    <form onSubmit={formik.handleSubmit}>
+                                        <Stack spacing={2}>
+                                            <Stack direction="row" spacing={2}>
+                                                <TextField
+                                                    label="First Name"
+                                                    name="firstName"
+                                                    fullWidth
+                                                    autoComplete="off"
+                                                    variant="outlined"
+                                                    sx={textFieldStyle}
+                                                    value={formik.values.firstName}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={formik.handleBlur}
+                                                    error={formik.touched.firstName && Boolean(formik.errors.firstName)}
+                                                    helperText={formik.touched.firstName && formik.errors.firstName}
+                                                />
+                                                <TextField
+                                                    label="Last Name"
+                                                    name="lastName"
+                                                    fullWidth
+                                                    autoComplete="off"
+                                                    variant="outlined"
+                                                    sx={textFieldStyle}
+                                                    value={formik.values.lastName}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={formik.handleBlur}
+                                                    error={formik.touched.lastName && Boolean(formik.errors.lastName)}
+                                                    helperText={formik.touched.lastName && formik.errors.lastName}
+                                                />
+                                            </Stack>
                                             <TextField
-                                                label="First Name"
-                                                name="firstName"
+                                                label="Email Address"
+                                                name="email"
+                                                type="email"
                                                 fullWidth
                                                 autoComplete="off"
                                                 variant="outlined"
                                                 sx={textFieldStyle}
-                                                value={formData.firstName}
-                                                onChange={handleInputChange}
+                                                value={formik.values.email}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                error={formik.touched.email && Boolean(formik.errors.email)}
+                                                helperText={formik.touched.email && formik.errors.email}
                                             />
-                                            <TextField
-                                                label="Last Name"
-                                                name="lastName"
+                                            {(openAddModal) && (
+                                                <TextField
+                                                    label="Password"
+                                                    name="password"
+                                                    type="password"
+                                                    fullWidth
+                                                    autoComplete="new-password"
+                                                    variant="outlined"
+                                                    sx={textFieldStyle}
+                                                    value={formik.values.password}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={formik.handleBlur}
+                                                    error={formik.touched.password && Boolean(formik.errors.password)}
+                                                    helperText={formik.touched.password && formik.errors.password}
+                                                />
+                                            )}
+                                            <Button
+                                                type="submit"
+                                                variant="contained"
                                                 fullWidth
-                                                autoComplete="off"
-                                                variant="outlined"
-                                                sx={textFieldStyle}
-                                                value={formData.lastName}
-                                                onChange={handleInputChange}
-                                            />
+                                                size="large"
+                                                disabled={formik.isSubmitting}
+                                                sx={{
+                                                    mt: 2,
+                                                    bgcolor: COLORS.GREEN,
+                                                    color: COLORS.WHITE,
+                                                    borderRadius: 0,
+                                                    fontFamily: 'var(--font-primary) !important',
+                                                    "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                                                }}
+                                            >
+                                                {openAddModal ? "Add Superintendent" : "Save Changes"}
+                                            </Button>
                                         </Stack>
-                                        <TextField
-                                            label="Email Address"
-                                            name="email"
-                                            type="email"
-                                            fullWidth
-                                            autoComplete="off"
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            value={formData.email}
-                                            onChange={handleInputChange}
-                                        />
-                                        {openAddModal && (
-                                            <TextField
-                                                label="Password"
-                                                name="password"
-                                                type="password"
-                                                fullWidth
-                                                autoComplete="new-password"
-                                                variant="outlined"
-                                                sx={textFieldStyle}
-                                                value={formData.password}
-                                                onChange={handleInputChange}
-                                            />
-                                        )}
-                                        <Button
-                                            variant="contained"
-                                            fullWidth
-                                            size="large"
-                                            onClick={openAddModal ? handleAddSuperintendent : handleUpdateSuperintendent}
-                                            sx={{
-                                                mt: 2,
-                                                bgcolor: COLORS.GREEN,
-                                                color: COLORS.WHITE,
-                                                borderRadius: 0,
-                                                fontFamily: 'var(--font-primary) !important',
-                                                "&:hover": { bgcolor: COLORS.GREEN_DARK },
-                                            }}
-                                        >
-                                            {openAddModal ? "Add Superintendent" : "Save Changes"}
-                                        </Button>
-                                    </>
+                                    </form>
                                 )}
                             </Stack>
                         </Box>

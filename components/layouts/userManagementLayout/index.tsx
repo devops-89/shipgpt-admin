@@ -1,8 +1,8 @@
 "use client";
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
+import { authControllers } from "@/api/auth";
 import {
     Box,
     Typography,
@@ -32,16 +32,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
 import { COLORS } from "@/utils/enum";
-
-// Mock Data
-const INITIAL_USERS = [
-    { id: 1, name: "Amit Kumar", email: "amit@example.com", company: "Logistics One", status: "Active", joined: "2024-01-15" },
-    { id: 2, name: "Sarah Jenkins", email: "sarah@shipping.co", company: "FastTrack", status: "Blocked", joined: "2024-02-20" },
-    { id: 3, name: "Mike Ross", email: "mike@transporter.net", company: "Global Moves", status: "Active", joined: "2024-03-10" },
-];
-
 export default function UserManagementLayout() {
-    const [users, setUsers] = useState(INITIAL_USERS);
+    const [users, setUsers] = useState<any[]>([]);
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openEditModal, setOpenEditModal] = useState(false);
@@ -51,6 +43,29 @@ export default function UserManagementLayout() {
         setMobileOpen(!mobileOpen);
     };
     const [selectedUser, setSelectedUser] = useState<any>(null);
+    const fetchUsers = async () => {
+        try {
+            const response = await authControllers.getUsers({ role: 'USER' });
+            const docs = response.data?.data?.docs || [];
+            const formattedUsers = docs.map((user: any) => ({
+                id: user.id,
+                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'N/A',
+                email: user.email,
+                role: user.role || 'User',
+                joined: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
+                status: user.status || (user.isActive ? "Active" : "Inactive")
+            }));
+            setUsers(formattedUsers);
+        }
+        catch (error) {
+            console.error("Failed to fetch users:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
     const handleView = (user: any) => {
         setSelectedUser(user);
         setOpenViewModal(true);
@@ -140,7 +155,7 @@ export default function UserManagementLayout() {
                 open={mobileOpen}
                 onClose={handleDrawerToggle}
                 ModalProps={{
-                    keepMounted: true,  
+                    keepMounted: true,
                 }}
                 sx={{
                     display: { xs: 'block', md: 'none' },
@@ -163,27 +178,7 @@ export default function UserManagementLayout() {
                         <Typography variant="h4" fontWeight={700} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
                             User Management
                         </Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => setOpenAddModal(true)}
-                            sx={{
-                                bgcolor: "var(--card-bg)",
-                                color: "var(--foreground)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 0,
-                                textTransform: "none",
-                                px: 3,
-                                py: 1.5,
-                                fontFamily: 'var(--font-primary) !important',
-                                "&:hover": {
-                                    bgcolor: "rgba(255,255,255,0.05)",
-                                    border: "1px solid var(--foreground)",
-                                },
-                            }}
-                        >
-                            Add User
-                        </Button>
+
                     </Box>
 
                     {/* User Table */}
@@ -193,7 +188,7 @@ export default function UserManagementLayout() {
                                 <TableRow>
                                     <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Name</TableCell>
                                     <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Email</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Company</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Role</TableCell>
                                     <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Joined Date</TableCell>
                                     <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Status</TableCell>
                                     <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", textAlign: 'right', fontFamily: 'var(--font-primary) !important' }}>Actions</TableCell>
@@ -209,7 +204,7 @@ export default function UserManagementLayout() {
                                             {row.name}
                                         </TableCell>
                                         <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.email}</TableCell>
-                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.company}</TableCell>
+                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.role}</TableCell>
                                         <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.joined}</TableCell>
                                         <TableCell>
                                             <Switch
@@ -236,39 +231,6 @@ export default function UserManagementLayout() {
                     </TableContainer>
 
 
-
-                    {/* Add User Modal */}
-                    <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
-                        <Box sx={modalStyle}>
-                            <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
-                                Add New User
-                            </Typography>
-                            <Stack spacing={2}>
-                                <TextField label="Full Name" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Email Address" type="email" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Company Name" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Phone Number" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <Button
-                                    variant="contained"
-                                    fullWidth
-                                    size="large"
-                                    sx={{
-                                        mt: 2,
-                                        bgcolor: COLORS.GREEN,
-                                        color: COLORS.WHITE,
-                                        border: "1px solid var(--border)",
-                                        borderRadius: 0,
-                                        fontFamily: 'var(--font-primary) !important',
-                                        "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
-                                    }}
-                                    onClick={() => setOpenAddModal(false)}
-                                >
-                                    Create User
-                                </Button>
-                            </Stack>
-                        </Box>
-                    </Modal>
-
                     {/* Edit User Modal */}
                     <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
                         <Box sx={modalStyle}>
@@ -278,7 +240,7 @@ export default function UserManagementLayout() {
                             <Stack spacing={2}>
                                 <TextField label="Full Name" defaultValue={selectedUser?.name} fullWidth variant="outlined" sx={textFieldStyle} />
                                 <TextField label="Email Address" defaultValue={selectedUser?.email} type="email" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Company Name" defaultValue={selectedUser?.company} fullWidth variant="outlined" sx={textFieldStyle} />
+                                <TextField label="Role" defaultValue={selectedUser?.role} fullWidth variant="outlined" sx={textFieldStyle} />
                                 <Button
                                     variant="contained"
                                     fullWidth
@@ -346,8 +308,8 @@ export default function UserManagementLayout() {
                                             <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.email}</Typography>
                                         </Box>
                                         <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Company</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.company}</Typography>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.role}</Typography>
                                         </Box>
                                         <Box>
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Date Joined</Typography>
