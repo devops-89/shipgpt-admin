@@ -6,6 +6,21 @@ const publicApi = axios.create({
 const securedApi = axios.create({
     baseURL: serverConstants.authenticationUrls,
 });
+const shippublicApi =axios.create({
+    baseUrl:serverConstants.shipUrls,
+});
+const shipsecuredApi =axios.create({
+    baseUrl:serverConstants.shipUrls,
+});
+shipsecuredApi.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    });
+
 securedApi.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("accessToken");
@@ -14,5 +29,5 @@ securedApi.interceptors.request.use(
         }
         return config;
     });
-export { publicApi, securedApi };
+export { publicApi, securedApi,shippublicApi,shipsecuredApi };
 
