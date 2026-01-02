@@ -1,8 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
-import { shipControllers } from "@/api/ship";
 import { toast } from "react-toastify";
 import {
     Box,
@@ -29,23 +28,27 @@ import {
     ListItemText,
     ListItemSecondaryAction,
     Divider,
-    Switch,
-    Drawer
+    Switch
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import { COLORS } from "@/utils/enum";
 
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { fetchShips, createShip, fetchShipDetails, clearError } from "@/redux/slices/shipSlice";
+// Removing direct api import
+import { shipControllers } from "@/api/ship"; // Keeping for delete/update which are not in slice yet or if I add them now
+
 // Types
 interface ShipDocument {
     name: string;
-    file?: File; // For new uploads
+    file?: File;
 }
 
 interface Ship {
@@ -54,54 +57,73 @@ interface Ship {
     imo: string;
     status: string;
     documents: Record<string, ShipDocument[]>;
+    adminName?: string;
 }
 
 const CATEGORIES = ["Compliance", "Crewing", "Mechanical"];
 
-const MOCK_SHIPS: Ship[] = [
-    {
-        id: 1,
-        name: "Poseidon I",
-        imo: "9876543",
-        status: "Active",
-        documents: {
-            'Compliance': [{ name: 'safety_cert.pdf' }],
-            'Crewing': [],
-            'Mechanical': []
-        }
-    },
-    {
-        id: 2,
-        name: "Sea Breeze",
-        imo: "1234567",
-        status: "Maintenance",
-        documents: {
-            'Compliance': [],
-            'Crewing': [{ name: 'crew_list.pdf' }],
-            'Mechanical': [{ name: 'engine_report.pdf' }]
-        }
-    },
-];
-
 export default function ShipManagementLayout() {
-    const [ships, setShips] = useState<Ship[]>(MOCK_SHIPS);
+    const dispatch = useDispatch<AppDispatch>();
+    const { ships, selectedShip: reduxSelectedShip, loading, error, createLoading } = useSelector((state: RootState) => state.ship);
+
+    // Mapped ships for display from Redux
+    // Note: slice returns raw objects, we might need mapping if structure differs
+    const displayShips = ships.map((item: any) => ({
+        id: item._id || item.id,
+        name: item.name,
+        imo: item.IMO || item.imo,
+        status: item.status || "Active",
+        documents: item.documents || { 'Compliance': [], 'Crewing': [], 'Mechanical': [] }
+    }));
+
+    useEffect(() => {
+        dispatch(fetchShips());
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [error, dispatch]);
+
+    // Sync detailed ship selection
+    useEffect(() => {
+        if (reduxSelectedShip && openViewModal) {
+            const detailedShip: Ship = {
+                id: reduxSelectedShip._id || reduxSelectedShip.id,
+                name: reduxSelectedShip.name,
+                imo: reduxSelectedShip.IMO,
+                status: reduxSelectedShip.isActive ? "Active" : "Maintenance",
+                documents: reduxSelectedShip.documents || {},
+                adminName: reduxSelectedShip.admin ? `${reduxSelectedShip.admin.firstName} ${reduxSelectedShip.admin.lastName}` : "N/A"
+            };
+            setSelectedShip(detailedShip);
+            setName(detailedShip.name);
+            setImo(detailedShip.imo);
+            setAdminName(detailedShip.adminName || "N/A");
+            setPendingDocuments(detailedShip.documents || {});
+        }
+    }, [reduxSelectedShip]);
+
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
     const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [userRole, setUserRole] = useState<string>("");
 
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const drawerWidth = 240;
-
-    const handleDrawerToggle = () => {
-        setMobileOpen(!mobileOpen);
-    };
+    // Fetch user role
+    useEffect(() => {
+        const storedRole = localStorage.getItem("userRole");
+        if (storedRole) setUserRole(storedRole);
+    }, []);
 
     // Form states
     const [name, setName] = useState("");
     const [imo, setImo] = useState("");
+    const [adminName, setAdminName] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("");
     const [pendingDocuments, setPendingDocuments] = useState<Record<string, ShipDocument[]>>({
         'Compliance': [],
@@ -112,6 +134,7 @@ export default function ShipManagementLayout() {
     const resetForm = () => {
         setName("");
         setImo("");
+        setAdminName("");
         setSelectedCategory("");
         setPendingDocuments({ 'Compliance': [], 'Crewing': [], 'Mechanical': [] });
     };
@@ -122,12 +145,13 @@ export default function ShipManagementLayout() {
     };
 
     const handleOpenView = (ship: Ship) => {
-        setSelectedShip(ship);
-        setName(ship.name);
-        setImo(ship.imo);
-        setPendingDocuments(ship.documents);
-        setIsEditing(false);
+        // Dispatch fetch details
         setOpenViewModal(true);
+        setIsEditing(false);
+        // We set basic info first while loading details
+        // Or wait for effect. 
+        // Ideally pass ID to thunk
+        dispatch(fetchShipDetails(ship.id.toString()));
     };
 
     const handleCloseView = () => {
@@ -156,11 +180,9 @@ export default function ShipManagementLayout() {
 
     const confirmStatusChange = () => {
         if (selectedShip) {
-            const newStatus = selectedShip.status === "Active" ? "Maintenance" : "Active";
-            setShips(ships.map(s => s.id === selectedShip.id ? { ...s, status: newStatus } : s));
+            toast.info("Status update pending API integration");
             setOpenConfirmModal(false);
             setSelectedShip(null);
-            toast.success(`Ship status updated to ${newStatus}!`);
         }
     };
 
@@ -170,50 +192,49 @@ export default function ShipManagementLayout() {
             IMO: imo
         };
 
-        try {
-            const response = await shipControllers.createShip(payload);
-            // Assuming the API returns the created object or strictly the status. 
-            // Ideally we fetch the list again, but for now we append to local state.
-            // If response.data contains the new ship object including an ID:
-            const newShipData = response.data?.data || response.data || payload; // Fallback to payload
-
-            const newShip: Ship = {
-                id: newShipData.id || ships.length + 1, // Use returned ID or generate one
-                name: newShipData.name || name,
-                imo: newShipData.IMO || imo,
-                status: "Active",
-                documents: pendingDocuments // API might not handle docs in this call, preserving local state for now
-            };
-
-            setShips([...ships, newShip]);
+        const resultAction = await dispatch(createShip(payload));
+        if (createShip.fulfilled.match(resultAction)) {
             toast.success("Ship created successfully!");
             setOpenAddModal(false);
             resetForm();
-        } catch (error: any) {
-            console.error("Error creating ship:", error);
-            toast.error(error.response?.data?.message || "Failed to create ship. Please try again.");
+            dispatch(fetchShips());
         }
     };
 
-    const handleUpdateShip = () => {
+    const handleUpdateShip = async () => {
         if (!selectedShip) return;
-        const updatedShip: Ship = {
-            ...selectedShip,
-            name,
-            imo,
-            documents: pendingDocuments
+        const payload = {
+            name: name,
+            IMO: imo,
+            // Handle documents separately if needed or if supported by update endpoint
         };
-        setShips(ships.map(s => s.id === selectedShip.id ? updatedShip : s));
-        setSelectedShip(updatedShip);
-        setIsEditing(false);
-        toast.success("Ship details updated successfully!");
+
+        try {
+            await shipControllers.updateShip(selectedShip.id, payload);
+            dispatch(fetchShips());
+            setSelectedShip(null);
+            setIsEditing(false);
+            setOpenViewModal(false);
+            toast.success("Ship details updated successfully!");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to update ship. Please try again.");
+        }
     };
 
-    const handleDeleteShip = () => {
+    const handleDeleteShip = async () => {
         if (!selectedShip) return;
-        setShips(ships.filter(s => s.id !== selectedShip.id));
-        handleCloseView();
-        toast.success("Ship deleted successfully!");
+
+        if (confirm("Are you sure you want to delete this ship?")) {
+            try {
+                await shipControllers.deleteShip(selectedShip.id);
+                dispatch(fetchShips());
+                handleCloseView();
+                toast.success("Ship deleted successfully!");
+            } catch (error: any) {
+                console.error("Error deleting ship:", error);
+                toast.error(error.response?.data?.message || "Failed to delete ship. Please try again.");
+            }
+        }
     };
 
     const removeDocument = (category: string, index: number) => {
@@ -237,7 +258,6 @@ export default function ShipManagementLayout() {
         maxHeight: '90vh',
         overflowY: 'auto',
         bgcolor: 'var(--card-bg)',
-        // color: 'var(--foreground)',
         boxShadow: 24,
         border: '1px solid var(--border)',
         p: 4,
@@ -283,74 +303,52 @@ export default function ShipManagementLayout() {
     };
 
     return (
-        <Box sx={{ display: "flex", minHeight: "100vh" }}>
-            <Box
-                component="nav"
-                sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-            >
-                {/* Mobile Drawer */}
-                <Drawer
-                    variant="temporary"
-                    open={mobileOpen}
-                    onClose={handleDrawerToggle}
-                    ModalProps={{
-                        keepMounted: true,
-                    }}
-                    sx={{
-                        display: { xs: 'block', md: 'none' },
-                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-                    }}
-                >
-                    <Sidebar />
-                </Drawer>
-                {/* Desktop sidebar */}
-                <Drawer
-                    variant="permanent"
-                    sx={{
-                        display: { xs: 'none', md: 'block' },
-                        '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-                    }}
-                    open
-                >
-                    <Sidebar />
-                </Drawer>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+            {/* Sidebar – Fixed 20% */}
+            <Box sx={{ width: "20%", height: "100%", overflowY: "auto", borderRight: "1px solid var(--border)" }}>
+                <Sidebar />
             </Box>
 
+            {/* Main Content – 80% */}
             <Box
                 component="main"
                 sx={{
-                    flexGrow: 1,
-                    width: { md: `calc(100% - ${drawerWidth}px)` }
+                    width: "80%",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
                 }}
             >
-                <Navbar onMenuClick={handleDrawerToggle} />
-                <Box sx={{ p: 3 }}>
+                <Navbar />
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
                     <Box sx={{ mb: 4, display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'start', sm: 'center' }, gap: 2 }}>
                         <Typography variant="h4" fontWeight={700} sx={commonStyles}>
                             Ship Management
                         </Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenAdd}
-                            sx={{
-                                width: { xs: '100%', sm: 'auto' },
-                                bgcolor: "var(--card-bg)",
-                                color: "var(--foreground)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 0,
-                                textTransform: "none",
-                                px: 3,
-                                py: 1.5,
-                                fontFamily: 'var(--font-primary) !important',
-                                "&:hover": {
-                                    bgcolor: "rgba(255,255,255,0.05)",
-                                    border: "1px solid var(--foreground)",
-                                },
-                            }}
-                        >
-                            Add Ship
-                        </Button>
+                        {(userRole === 'ADMIN') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenAdd}
+                                sx={{
+                                    width: { xs: '100%', sm: 'auto' },
+                                    bgcolor: "var(--card-bg)",
+                                    color: "var(--foreground)",
+                                    border: "1px solid var(--border)",
+                                    borderRadius: 0,
+                                    textTransform: "none",
+                                    px: 3,
+                                    py: 1.5,
+                                    fontFamily: 'var(--font-primary) !important',
+                                    "&:hover": {
+                                        bgcolor: "rgba(255,255,255,0.05)",
+                                        border: "1px solid var(--foreground)",
+                                    },
+                                }}
+                            >
+                                Add Ship
+                            </Button>
+                        )}
                     </Box>
 
                     {/* Ship Table */}
@@ -365,29 +363,35 @@ export default function ShipManagementLayout() {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {ships.map((row) => (
-                                    <TableRow key={row.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
-                                            {row.name}
-                                        </TableCell>
-                                        <TableCell sx={commonStyles}>{row.imo}</TableCell>
-                                        <TableCell>
-                                            <Switch
-                                                checked={row.status === 'Active'}
-                                                onChange={() => handleToggleStatusClick(row)}
-                                                color="success"
-                                                sx={{
-                                                    '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
-                                                <RemoveRedEyeIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={4} align="center" sx={{ ...commonStyles, py: 4 }}>Loading...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    displayShips.map((row: any) => (
+                                        <TableRow key={row.id || row._id || Math.random()} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                                            <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
+                                                {row.name}
+                                            </TableCell>
+                                            <TableCell sx={commonStyles}>{row.imo}</TableCell>
+                                            <TableCell>
+                                                <Switch
+                                                    checked={row.status === 'Active'}
+                                                    onChange={() => handleToggleStatusClick(row)}
+                                                    color="success"
+                                                    sx={{
+                                                        '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
+                                                    <RemoveRedEyeIcon />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -444,6 +448,10 @@ export default function ShipManagementLayout() {
                                             <Box>
                                                 <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>IMO Number</Typography>
                                                 <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{imo}</Typography>
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Admin Name</Typography>
+                                                <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{adminName}</Typography>
                                             </Box>
                                         </>
                                     ) : (
@@ -566,6 +574,7 @@ export default function ShipManagementLayout() {
                                         fullWidth
                                         size="large"
                                         onClick={openAddModal ? handleAddShip : handleUpdateShip}
+                                        disabled={createLoading}
                                         sx={{
                                             mt: 2,
                                             bgcolor: COLORS.GREEN,
@@ -575,7 +584,7 @@ export default function ShipManagementLayout() {
                                             "&:hover": { bgcolor: COLORS.GREEN_DARK },
                                         }}
                                     >
-                                        {openAddModal ? "Create Ship" : "Save Changes"}
+                                        {openAddModal ? (createLoading ? "Create Ship" : "Create Ship") : "Save Changes"}
                                     </Button>
                                 )}
                             </Stack>

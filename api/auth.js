@@ -49,6 +49,14 @@ export const authControllers = {
       throw error;
     }
   },
+  updateUser: async (id, data) => {
+    try {
+      let result = await securedApi.patch(`/users/${id}`, data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 
 };
 

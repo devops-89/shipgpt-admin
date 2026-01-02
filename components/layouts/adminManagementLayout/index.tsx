@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { authControllers } from "@/api/auth";
 import { toast } from "react-toastify";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
@@ -27,12 +26,43 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import { COLORS } from "@/utils/enum";
+
+// Redux imports
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { fetchAdmins, createAdmin, clearError } from "@/redux/slices/adminSlice";
+
 export default function AdminManagementLayout() {
-    const [admins, setAdmins] = useState<any[]>([]);
+    const dispatch = useDispatch<AppDispatch>();
+    const { admins, loading, error, createLoading } = useSelector((state: RootState) => state.admin);
+
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
     const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
+    const [userRole, setUserRole] = useState<string>("");
+
+    // Fetch user role on client side
+    useEffect(() => {
+        const storedRole = localStorage.getItem("userRole");
+        if (storedRole) {
+            setUserRole(storedRole);
+        }
+    }, []);
+
+    // Fetch admins on mount
+    useEffect(() => {
+        dispatch(fetchAdmins());
+    }, [dispatch]);
+
+    // Handle errors globally for this component
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [error, dispatch]);
+
     const handleOpenView = (admin: any) => {
         setSelectedAdmin(admin);
         setOpenViewModal(true);
@@ -48,11 +78,11 @@ export default function AdminManagementLayout() {
 
     const confirmStatusChange = () => {
         if (selectedAdmin) {
-            const newStatus = selectedAdmin.status === "Active" ? "Inactive" : "Active";
-            setAdmins(admins.map(a => a.id === selectedAdmin.id ? { ...a, status: newStatus } : a));
+            // Dispatch update action if we had one implemented in redux
+            // For now we mock it locally or we can add updateAdmin thunk later
+            toast.info("Status update logic needs API integration via Redux");
             setOpenConfirmModal(false);
             setSelectedAdmin(null);
-            toast.success(`Admin ${newStatus === 'Active' ? 'enabled' : 'disabled'} successfully!`);
         }
     };
 
@@ -89,7 +119,8 @@ export default function AdminManagementLayout() {
         '& .MuiInputLabel-root.Mui-focused': { color: COLORS.WHITE },
         '& .MuiSelect-icon': { color: COLORS.WHITE },
         '& .MuiInputBase-input': { fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE },
-        '& .MuiMenuItem-root': { fontFamily: 'var(--font-primary) !important' }
+        '& .MuiMenuItem-root': { fontFamily: 'var(--font-primary) !important' },
+        '& .MuiFormHelperText-root': { fontFamily: 'var(--font-primary) !important' }
     };
 
     const confirmModalStyle = {
@@ -123,27 +154,19 @@ export default function AdminManagementLayout() {
             password: "",
         },
         validationSchema: validationSchema,
-        onSubmit: async (values, { setSubmitting, setErrors }) => {
-            try {
-                await authControllers.createAdmin(values);
-                setOpenAddModal(false);
+        onSubmit: async (values, { setSubmitting }) => {
+            const resultAction = await dispatch(createAdmin(values));
+            if (createAdmin.fulfilled.match(resultAction)) {
                 toast.success("Admin created successfully!");
+                setOpenAddModal(false);
                 formik.resetForm();
-            } catch (error: any) {
-                console.error("Error creating admin:", error);
-                if (error.response && error.response.data && error.response.data.errors) {
-                    const apiErrors = error.response.data.errors;
-                    toast.error(apiErrors.join("\n"));
-                } else {
-                    toast.error(error.response?.data?.message || "Failed to create admin");
-                }
-            } finally {
-                setSubmitting(false);
+                dispatch(fetchAdmins()); // Refresh list
             }
+            setSubmitting(false);
         },
     });
 
-    const handleOpenAddModal = () => {
+    const handleOpenAdd = () => {
         formik.resetForm();
         setOpenAddModal(true);
     };
@@ -152,27 +175,6 @@ export default function AdminManagementLayout() {
         setOpenAddModal(false);
         formik.resetForm();
     };
-    const fetchAdmins = async () => {
-        try {
-            const response = await authControllers.getUsers({ user_role: 'ADMIN' });
-            console.log("Admins fetched raw:", response.data);
-            let data: any[] = [];
-            if (response.data?.data?.docs && Array.isArray(response.data.data.docs)) {
-                data = response.data.data.docs;
-            }
-            else {
-                console.warn("API did not return an array Response:", response.data);
-                data = [];
-            }
-            setAdmins(data);
-        } catch (error) {
-            console.error("Failed to fetch admins:", error);
-            setAdmins([]);
-        }
-    };
-    useEffect(() => {
-        fetchAdmins();
-    }, []);
 
     return (
         <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -184,32 +186,35 @@ export default function AdminManagementLayout() {
             {/* Main – 80% */}
             <Box sx={{ width: "80%", height: "100%", display: "flex", flexDirection: "column" }}>
                 <Navbar />
-                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto" }}>
-                    <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
+                    <Box sx={{ mb: 4, display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'start', sm: 'center' }, gap: 2 }}>
                         <Typography variant="h4" fontWeight={700} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
                             Admin Management
                         </Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenAddModal}
-                            sx={{
-                                bgcolor: "var(--card-bg)",
-                                color: "var(--foreground)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 0,
-                                textTransform: "none",
-                                px: 3,
-                                py: 1.5,
-                                fontFamily: 'var(--font-primary) !important',
-                                "&:hover": {
-                                    bgcolor: "rgba(255,255,255,0.05)",
-                                    border: "1px solid var(--foreground)",
-                                },
-                            }}
-                        >
-                            Add Admin
-                        </Button>
+                        {userRole === 'SUPERADMIN' && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenAdd}
+                                sx={{
+                                    width: { xs: '100%', sm: 'auto' },
+                                    bgcolor: "var(--card-bg)",
+                                    color: "var(--foreground)",
+                                    border: "1px solid var(--border)",
+                                    borderRadius: 0,
+                                    textTransform: "none",
+                                    px: 3,
+                                    py: 1.5,
+                                    fontFamily: 'var(--font-primary) !important',
+                                    "&:hover": {
+                                        bgcolor: "rgba(255,255,255,0.05)",
+                                        border: "1px solid var(--foreground)",
+                                    },
+                                }}
+                            >
+                                Add Admin
+                            </Button>
+                        )}
                     </Box>
 
                     {/* Admin Table */}
@@ -225,45 +230,51 @@ export default function AdminManagementLayout() {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {Array.isArray(admins) && admins.map((row) => (
-                                    <TableRow
-                                        key={row.id || row._id || Math.random()}
-                                        sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                                    >
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
-                                            {row.name || `${row.firstName} ${row.lastName}`}
-                                        </TableCell>
-                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.email}</TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={row.role || row.user_role || "Admin"}
-                                                size="small"
-                                                sx={{
-                                                    borderRadius: 0,
-                                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                                    color: "var(--foreground)",
-                                                    fontWeight: 500,
-                                                    fontFamily: 'var(--font-primary) !important'
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Switch
-                                                checked={row.status === 'Active' || row.isActive === true}
-                                                onChange={() => handleToggleStatusClick(row)}
-                                                color="success"
-                                                sx={{
-                                                    '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
-                                                <RemoveRedEyeIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ color: "var(--foreground)", py: 4 }}>Loading...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    Array.isArray(admins) && admins.map((row) => (
+                                        <TableRow
+                                            key={row.id || row._id || Math.random()}
+                                            sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                                        >
+                                            <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
+                                                {row.name || `${row.firstName} ${row.lastName}`}
+                                            </TableCell>
+                                            <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.email}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={row.role || row.user_role || "Admin"}
+                                                    size="small"
+                                                    sx={{
+                                                        borderRadius: 0,
+                                                        bgcolor: 'rgba(255,255,255,0.05)',
+                                                        color: "var(--foreground)",
+                                                        fontWeight: 500,
+                                                        fontFamily: 'var(--font-primary) !important'
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Switch
+                                                    checked={row.status === 'Active' || row.isActive === true}
+                                                    onChange={() => handleToggleStatusClick(row)}
+                                                    color="success"
+                                                    sx={{
+                                                        '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
+                                                    <RemoveRedEyeIcon />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -337,7 +348,7 @@ export default function AdminManagementLayout() {
                                         variant="contained"
                                         fullWidth
                                         size="large"
-                                        disabled={formik.isSubmitting}
+                                        disabled={createLoading || formik.isSubmitting}
                                         sx={{
                                             mt: 2,
                                             bgcolor: COLORS.GREEN,
@@ -348,7 +359,7 @@ export default function AdminManagementLayout() {
                                             "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
                                         }}
                                     >
-                                        {formik.isSubmitting ? "Creating..." : "Create Admin"}
+                                        {createLoading ? "Creating..." : "Create Admin"}
                                     </Button>
                                 </Stack>
                             </form>

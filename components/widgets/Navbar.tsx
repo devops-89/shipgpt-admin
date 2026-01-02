@@ -1,11 +1,15 @@
 import { Box, Typography, Avatar, IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import React from 'react';
+import AdminProfileModal from './AdminProfileModal';
 
 interface NavbarProps {
     onMenuClick?: () => void;
 }
 
 export default function Navbar({ onMenuClick }: NavbarProps) {
+    const [openProfile, setOpenProfile] = React.useState(false);
+
     return (
         <Box
             sx={{
@@ -34,10 +38,23 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 <Typography fontWeight={600}>ShipGPT</Typography>
             </Box>
 
-            <Box display="flex" alignItems="center" gap={1}>
+            <Box
+                display="flex"
+                alignItems="center"
+                gap={1}
+                onClick={() => setOpenProfile(true)}
+                sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+            >
                 <Typography variant="body2">ADMIN</Typography>
                 <Avatar sx={{ width: 32, height: 32 }}>A</Avatar>
             </Box>
+
+            {openProfile && (
+                <AdminProfileModal
+                    open={openProfile}
+                    onClose={() => setOpenProfile(false)}
+                />
+            )}
         </Box>
     );
 }

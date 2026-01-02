@@ -29,8 +29,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import { COLORS } from "@/utils/enum";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { authControllers } from "@/api/auth";
-
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { fetchCrew, createCrew, clearError } from "@/redux/slices/crewSlice";
 
 interface CrewMember {
     id: number;
@@ -41,21 +42,35 @@ interface CrewMember {
     status: string;
 }
 
-const MOCK_CREW: CrewMember[] = [
-    { id: 1, firstName: "John", lastName: "Doe", email: "john.doe@shippgpt.com", role: "Captain", status: "Active" },
-    { id: 2, firstName: "Jane", lastName: "Smith", email: "jane.smith@shippgpt.com", role: "Engineer", status: "Active" },
-    { id: 3, firstName: "Mike", lastName: "Johnson", email: "mike.j@shippgpt.com", role: "Deck Hand", status: "Inactive" },
-];
-
 export default function CrewManagementLayout() {
-    const [crew, setCrew] = useState<CrewMember[]>(MOCK_CREW);
+    const dispatch = useDispatch<AppDispatch>();
+    const { crew, loading, error, createLoading } = useSelector((state: RootState) => state.crew);
+
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
-    const [selectedCrew, setSelectedCrew] = useState<CrewMember | null>(null);
+    const [selectedCrew, setSelectedCrew] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [userRole, setUserRole] = useState<string>("");
 
-    // Formik for Add Crew
+    // Fetch user role
+    useEffect(() => {
+        const storedRole = localStorage.getItem("userRole");
+        if (storedRole) setUserRole(storedRole);
+    }, []);
+
+    // Fetch crews on mount
+    useEffect(() => {
+        dispatch(fetchCrew());
+    }, [dispatch]);
+
+    // Handle global errors for this component
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [error, dispatch]);
     const validationSchema = Yup.object({
         firstName: Yup.string().required("First Name is required"),
         lastName: Yup.string().required("Last Name is required"),
@@ -72,23 +87,14 @@ export default function CrewManagementLayout() {
         },
         validationSchema: validationSchema,
         onSubmit: async (values, { setSubmitting }) => {
-            try {
-                await authControllers.createCrew(values);
-                setOpenAddModal(false);
+            const resultAction = await dispatch(createCrew(values));
+            if (createCrew.fulfilled.match(resultAction)) {
                 toast.success("Crew member created successfully!");
+                setOpenAddModal(false);
                 formik.resetForm();
-                // Optionally refetch crew list here if we had a getCrew API setup
-            } catch (error: any) {
-                console.error("Error creating crew:", error);
-                if (error.response && error.response.data && error.response.data.errors) {
-                    const apiErrors = error.response.data.errors;
-                    toast.error(apiErrors.join("\n"));
-                } else {
-                    toast.error(error.response?.data?.message || "Failed to create crew member");
-                }
-            } finally {
-                setSubmitting(false);
+                dispatch(fetchCrew());
             }
+            setSubmitting(false);
         },
     });
 
@@ -102,8 +108,7 @@ export default function CrewManagementLayout() {
         formik.resetForm();
     };
 
-    // ... (Existing View/Edit handlers - simplified for this step as they are mock-based)
-    const handleOpenView = (member: CrewMember) => {
+    const handleOpenView = (member: any) => {
         setSelectedCrew(member);
         setIsEditing(false);
         setOpenViewModal(true);
@@ -121,7 +126,7 @@ export default function CrewManagementLayout() {
         setOpenViewModal(false);
     };
 
-    const handleToggleStatusClick = (member: CrewMember) => {
+    const handleToggleStatusClick = (member: any) => {
         setSelectedCrew(member);
         setOpenConfirmModal(true);
     };
@@ -129,10 +134,10 @@ export default function CrewManagementLayout() {
     const confirmStatusChange = () => {
         if (selectedCrew) {
             // Mock status change
-            setCrew(crew.map(c => c.id === selectedCrew.id ? { ...c, status: selectedCrew.status === "Active" ? "Inactive" : "Active" } : c));
+            // In real app, dispatch an updateCrew action
+            toast.info("Status update needs API integration");
             setOpenConfirmModal(false);
             setSelectedCrew(null);
-            toast.success(`Crew member ${selectedCrew.status === "Active" ? "disabled" : "enabled"} successfully!`);
         }
     };
 
@@ -186,32 +191,6 @@ export default function CrewManagementLayout() {
         border: '1px solid var(--border)',
         textAlign: 'center'
     };
-    const fetchCrew = async () => {
-        try {
-            const response = await authControllers.getUsers({ user_role: 'CREW' });
-            console.log("crew fetched raw:", response.data);
-            let data: any[] = [];
-            if (response.data?.data?.docs && Array.isArray(response.data.data.docs)) {
-                data = response.data.data.docs;
-
-            }
-            else {
-                console.warn("crew fetched raw:", response.data);
-                data = [];
-            }
-            setCrew(data);
-
-        }
-        catch (error) {
-            console.error("Error fetching crew:", error);
-            setCrew([]);
-
-        }
-    };
-    useEffect(() => {
-        fetchCrew();
-    }, []);
-
 
     return (
         <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -223,33 +202,35 @@ export default function CrewManagementLayout() {
             {/* Main Content */}
             <Box sx={{ width: "80%", height: "100%", display: "flex", flexDirection: "column" }}>
                 <Navbar />
-                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto" }}>
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
                     <Box sx={{ mb: 4, display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'start', sm: 'center' }, gap: 2 }}>
                         <Typography variant="h4" fontWeight={700} sx={commonStyles}>
                             Crew Management
                         </Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenAdd}
-                            sx={{
-                                width: { xs: '100%', sm: 'auto' },
-                                bgcolor: "var(--card-bg)",
-                                color: "var(--foreground)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 0,
-                                textTransform: "none",
-                                px: 3,
-                                py: 1.5,
-                                fontFamily: 'var(--font-primary) !important',
-                                "&:hover": {
-                                    bgcolor: "rgba(255,255,255,0.05)",
-                                    border: "1px solid var(--foreground)",
-                                },
-                            }}
-                        >
-                            Add Crew
-                        </Button>
+                        {(userRole === 'ADMIN') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenAdd}
+                                sx={{
+                                    width: { xs: '100%', sm: 'auto' },
+                                    bgcolor: "var(--card-bg)",
+                                    color: "var(--foreground)",
+                                    border: "1px solid var(--border)",
+                                    borderRadius: 0,
+                                    textTransform: "none",
+                                    px: 3,
+                                    py: 1.5,
+                                    fontFamily: 'var(--font-primary) !important',
+                                    "&:hover": {
+                                        bgcolor: "rgba(255,255,255,0.05)",
+                                        border: "1px solid var(--foreground)",
+                                    },
+                                }}
+                            >
+                                Add Crew
+                            </Button>
+                        )}
                     </Box>
 
                     {/* Crew Table */}
@@ -265,42 +246,48 @@ export default function CrewManagementLayout() {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {crew.map((row) => (
-                                    <TableRow key={row.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
-                                            {row.firstName} {row.lastName}
-                                        </TableCell>
-                                        <TableCell sx={commonStyles}>{row.email}</TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={row.role}
-                                                size="small"
-                                                sx={{
-                                                    borderRadius: 0,
-                                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                                    color: "var(--foreground)",
-                                                    fontWeight: 500,
-                                                    fontFamily: 'var(--font-primary) !important'
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Switch
-                                                checked={row.status === 'Active'}
-                                                onChange={() => handleToggleStatusClick(row)}
-                                                color="success"
-                                                sx={{
-                                                    '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
-                                                <RemoveRedEyeIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ ...commonStyles, py: 4 }}>Loading...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    crew.map((row) => (
+                                        <TableRow key={row.id || row._id || Math.random()} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                                            <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
+                                                {row.firstName} {row.lastName}
+                                            </TableCell>
+                                            <TableCell sx={commonStyles}>{row.email}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={row.role || "Crew"}
+                                                    size="small"
+                                                    sx={{
+                                                        borderRadius: 0,
+                                                        bgcolor: 'rgba(255,255,255,0.05)',
+                                                        color: "var(--foreground)",
+                                                        fontWeight: 500,
+                                                        fontFamily: 'var(--font-primary) !important'
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Switch
+                                                    checked={row.status === 'Active' || row.isActive === true}
+                                                    onChange={() => handleToggleStatusClick(row)}
+                                                    color="success"
+                                                    sx={{
+                                                        '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
+                                                    <RemoveRedEyeIcon />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -374,7 +361,7 @@ export default function CrewManagementLayout() {
                                         variant="contained"
                                         fullWidth
                                         size="large"
-                                        disabled={formik.isSubmitting}
+                                        disabled={createLoading || formik.isSubmitting}
                                         sx={{
                                             mt: 2,
                                             bgcolor: COLORS.GREEN,
@@ -384,7 +371,7 @@ export default function CrewManagementLayout() {
                                             "&:hover": { bgcolor: COLORS.GREEN_DARK },
                                         }}
                                     >
-                                        {formik.isSubmitting ? "Adding..." : "Add Crew"}
+                                        {createLoading ? "Adding..." : "Add Crew"}
                                     </Button>
                                 </Stack>
                             </form>
@@ -427,7 +414,7 @@ export default function CrewManagementLayout() {
                                         </Box>
                                         <Box>
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedCrew?.role}</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedCrew?.role || "Crew"}</Typography>
                                         </Box>
                                     </>
                                 )}
@@ -442,7 +429,7 @@ export default function CrewManagementLayout() {
                                 {selectedCrew?.status === "Active" ? "Disable Crew Member" : "Enable Crew Member"}
                             </Typography>
                             <Typography variant="body2" sx={{ mb: 3, color: "var(--text-secondary)", fontFamily: 'var(--font-primary) !important' }}>
-                                Are you sure you want to {selectedCrew?.status === "Active" ? "disable" : "enable"} this crew member's account?
+                                Are you sure you want to {selectedCrew?.status === "Active" ? "disable" : "enable"} this crew member&#39;s account?
                             </Typography>
 
                             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>

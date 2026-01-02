@@ -41,7 +41,20 @@ export default function LoginPage() {
         if (token) {
           console.log("Saving Access Token:", token);
           localStorage.setItem("accessToken", token);
-          router.push("/dashboard");
+
+          // Try to extract and save user role
+          const user = response.data?.data?.user || response.data?.data;
+          const role = user?.role || user?.user_role || (user?.isAdmin ? 'ADMIN' : '') || (user?.isSuperAdmin ? 'SUPER_ADMIN' : '');
+
+          if (role) {
+            console.log("Saving User Role:", role);
+            localStorage.setItem("userRole", role);
+          } else {
+            console.warn("User role not found in login response");
+            // Fallback: If no role found, maybe we act based on assumptions or future profile fetch
+          }
+
+          router.push("/admin-management");
         } else {
           console.warn("Available keys in response:", Object.keys(response.data || {}));
           console.error("Access Token NOT found. Response was:", response.data);
@@ -131,11 +144,23 @@ export default function LoginPage() {
                 },
                 "& input": {
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
+                  backgroundColor: "transparent !important",
+                  // Transition to keep background transparent
+                  transition: "background-color 5000s ease-in-out 0s !important",
+                  "&:-webkit-autofill": {
+                    transition: "background-color 5000s ease-in-out 0s !important",
+                    WebkitTextFillColor: `${COLORS.WHITE} !important`,
+                    // Force transparent shadow to avoid distinct color box if standard transparency fails
+                    WebkitBoxShadow: "0 0 0 1000px transparent inset !important",
+                    backgroundColor: "transparent !important",
+                    backgroundClip: "text !important",
+                  },
                 }
               }}
               fullWidth
               label="Email"
               id="email"
+              InputLabelProps={{ shrink: true }}
               value={formik.values.email}
               onChange={formik.handleChange}
               error={formik.touched.email && Boolean(formik.errors.email)}
@@ -166,11 +191,22 @@ export default function LoginPage() {
                 },
                 "& input": {
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
+                  backgroundColor: "transparent !important",
+                  transition: "background-color 5000s ease-in-out 0s !important",
+                  "&:-webkit-autofill": {
+                    transition: "background-color 5000s ease-in-out 0s !important",
+                    WebkitTextFillColor: `${COLORS.WHITE} !important`,
+                    WebkitBoxShadow: "0 0 0 1000px transparent inset !important",
+                    backgroundColor: "transparent !important",
+                    backgroundClip: "text !important",
+                  },
                 }
               }}
               fullWidth
               label="Password"
               id="password"
+              placeholder=" "
+              InputLabelProps={{ shrink: true }}
               type={showPassword ? "text" : "password"}
               value={formik.values.password}
               onChange={formik.handleChange}

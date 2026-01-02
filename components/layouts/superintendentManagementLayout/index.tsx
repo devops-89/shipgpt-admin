@@ -4,7 +4,6 @@ import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { authControllers } from "@/api/auth";
 import { toast } from "react-toastify";
 import {
     Box,
@@ -29,7 +28,11 @@ import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { COLORS } from "@/utils/enum";
-// Types
+
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { fetchSuperintendents, createSuperintendent, clearError } from "@/redux/slices/superintendentSlice";
+
 interface Superintendent {
     id: number;
     firstName: string;
@@ -39,14 +42,35 @@ interface Superintendent {
     status: string;
 }
 
-
 export default function SuperintendentManagementLayout() {
-    const [superintendents, setSuperintendents] = useState<Superintendent[]>([]);
+    const dispatch = useDispatch<AppDispatch>();
+    const { superintendents, loading, error, createLoading } = useSelector((state: RootState) => state.superintendent);
+
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
-    const [selectedSuperintendent, setSelectedSuperintendent] = useState<Superintendent | null>(null);
+    const [selectedSuperintendent, setSelectedSuperintendent] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [userRole, setUserRole] = useState<string>("");
+
+    // Fetch user role
+    useEffect(() => {
+        const storedRole = localStorage.getItem("userRole");
+        if (storedRole) setUserRole(storedRole);
+    }, []);
+
+    // Fetch on mount
+    useEffect(() => {
+        dispatch(fetchSuperintendents());
+    }, [dispatch]);
+
+    // Handle errors
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [error, dispatch]);
 
     const validationSchema = Yup.object({
         firstName: Yup.string().required("First Name is required"),
@@ -69,64 +93,22 @@ export default function SuperintendentManagementLayout() {
         validationSchema: validationSchema,
         onSubmit: async (values, { setSubmitting, resetForm }) => {
             if (isEditing && selectedSuperintendent) {
-                const updatedMember: Superintendent = {
-                    ...selectedSuperintendent,
-                    firstName: values.firstName,
-                    lastName: values.lastName,
-                    email: values.email
-                };
-                setSuperintendents(superintendents.map(c => c.id === selectedSuperintendent.id ? updatedMember : c));
-                setSelectedSuperintendent(updatedMember);
+                // Update logic - pending API
+                toast.info("Update functionality pending API");
                 setIsEditing(false);
                 setSubmitting(false);
             } else {
-
-                try {
-                    await authControllers.createSuperintendent(values);
-                    setOpenAddModal(false);
+                const resultAction = await dispatch(createSuperintendent(values));
+                if (createSuperintendent.fulfilled.match(resultAction)) {
                     toast.success("Superintendent created successfully!");
+                    setOpenAddModal(false);
                     resetForm();
-                    fetchSuperintendents();
-                } catch (error: any) {
-                    console.error("Error creating superintendent:", error);
-                    if (error.response && error.response.data && error.response.data.errors) {
-                        toast.error(error.response.data.errors.join("\n"));
-                    } else {
-                        toast.error(error.response?.data?.message || "Failed to create superintendent");
-                    }
-                } finally {
-                    setSubmitting(false);
+                    dispatch(fetchSuperintendents());
                 }
+                setSubmitting(false);
             }
         },
     });
-
-    const fetchSuperintendents = async () => {
-        try {
-            const response = await authControllers.getUsers({ user_role: 'SUPERINTENDENT' });
-            let data: any[] = [];
-            if (response.data?.data?.docs && Array.isArray(response.data.data.docs)) {
-                data = response.data.data.docs;
-            } else {
-                data = [];
-            }
-            const mappedData = data.map((item: any) => ({
-                id: item.id || item._id,
-                firstName: item.firstName,
-                lastName: item.lastName,
-                email: item.email,
-                role: item.role || item.user_role || "Superintendent",
-                status: item.status || (item.isActive ? "Active" : "Inactive")
-            }));
-            setSuperintendents(mappedData);
-        } catch (error) {
-            console.error("Failed to fetch superintendents:", error);
-        }
-    };
-
-    useEffect(() => {
-        fetchSuperintendents();
-    }, []);
 
     const handleOpenAdd = () => {
         formik.resetForm();
@@ -166,11 +148,9 @@ export default function SuperintendentManagementLayout() {
 
     const confirmStatusChange = () => {
         if (selectedSuperintendent) {
-            const newStatus = selectedSuperintendent.status === "Active" ? "Inactive" : "Active";
-            setSuperintendents(superintendents.map(c => c.id === selectedSuperintendent.id ? { ...c, status: newStatus } : c));
+            toast.info("Status update pending API integration");
             setOpenConfirmModal(false);
             setSelectedSuperintendent(null);
-            toast.success(`Superintendent ${newStatus === "Active" ? "enabled" : "disabled"} successfully!`);
         }
     };
 
@@ -234,33 +214,35 @@ export default function SuperintendentManagementLayout() {
             {/* Main Content */}
             <Box sx={{ width: "80%", height: "100%", display: "flex", flexDirection: "column" }}>
                 <Navbar />
-                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto" }}>
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
                     <Box sx={{ mb: 4, display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'start', sm: 'center' }, gap: 2 }}>
                         <Typography variant="h4" fontWeight={700} sx={commonStyles}>
                             Superintendent Management
                         </Typography>
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={handleOpenAdd}
-                            sx={{
-                                width: { xs: '100%', sm: 'auto' },
-                                bgcolor: "var(--card-bg)",
-                                color: "var(--foreground)",
-                                border: "1px solid var(--border)",
-                                borderRadius: 0,
-                                textTransform: "none",
-                                px: 3,
-                                py: 1.5,
-                                fontFamily: 'var(--font-primary) !important',
-                                "&:hover": {
-                                    bgcolor: "rgba(255,255,255,0.05)",
-                                    border: "1px solid var(--foreground)",
-                                },
-                            }}
-                        >
-                            Add Superintendent
-                        </Button>
+                        {(userRole === 'ADMIN') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={handleOpenAdd}
+                                sx={{
+                                    width: { xs: '100%', sm: 'auto' },
+                                    bgcolor: "var(--card-bg)",
+                                    color: "var(--foreground)",
+                                    border: "1px solid var(--border)",
+                                    borderRadius: 0,
+                                    textTransform: "none",
+                                    px: 3,
+                                    py: 1.5,
+                                    fontFamily: 'var(--font-primary) !important',
+                                    "&:hover": {
+                                        bgcolor: "rgba(255,255,255,0.05)",
+                                        border: "1px solid var(--foreground)",
+                                    },
+                                }}
+                            >
+                                Add Superintendent
+                            </Button>
+                        )}
                     </Box>
 
                     {/* Table */}
@@ -276,42 +258,48 @@ export default function SuperintendentManagementLayout() {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {superintendents.map((row) => (
-                                    <TableRow key={row.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
-                                            {row.firstName} {row.lastName}
-                                        </TableCell>
-                                        <TableCell sx={commonStyles}>{row.email}</TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={row.role}
-                                                size="small"
-                                                sx={{
-                                                    borderRadius: 0,
-                                                    bgcolor: 'rgba(255,255,255,0.05)',
-                                                    color: "var(--foreground)",
-                                                    fontWeight: 500,
-                                                    fontFamily: 'var(--font-primary) !important'
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Switch
-                                                checked={row.status === 'Active'}
-                                                onChange={() => handleToggleStatusClick(row)}
-                                                color="success"
-                                                sx={{
-                                                    '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
-                                                <RemoveRedEyeIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ ...commonStyles, py: 4 }}>Loading...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    superintendents.map((row) => (
+                                        <TableRow key={row.id || row._id || Math.random()} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                                            <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
+                                                {row.firstName} {row.lastName}
+                                            </TableCell>
+                                            <TableCell sx={commonStyles}>{row.email}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={row.role || "Superintendent"}
+                                                    size="small"
+                                                    sx={{
+                                                        borderRadius: 0,
+                                                        bgcolor: 'rgba(255,255,255,0.05)',
+                                                        color: "var(--foreground)",
+                                                        fontWeight: 500,
+                                                        fontFamily: 'var(--font-primary) !important'
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Switch
+                                                    checked={row.status === 'Active' || row.isActive === true}
+                                                    onChange={() => handleToggleStatusClick(row)}
+                                                    color="success"
+                                                    sx={{
+                                                        '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
+                                                    <RemoveRedEyeIcon />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
@@ -351,7 +339,7 @@ export default function SuperintendentManagementLayout() {
                                         </Box>
                                         <Box>
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedSuperintendent?.role}</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedSuperintendent?.role || "Superintendent"}</Typography>
                                         </Box>
                                     </>
                                 ) : (
@@ -421,7 +409,7 @@ export default function SuperintendentManagementLayout() {
                                                 variant="contained"
                                                 fullWidth
                                                 size="large"
-                                                disabled={formik.isSubmitting}
+                                                disabled={createLoading || formik.isSubmitting}
                                                 sx={{
                                                     mt: 2,
                                                     bgcolor: COLORS.GREEN,
@@ -431,7 +419,7 @@ export default function SuperintendentManagementLayout() {
                                                     "&:hover": { bgcolor: COLORS.GREEN_DARK },
                                                 }}
                                             >
-                                                {openAddModal ? "Add Superintendent" : "Save Changes"}
+                                                {openAddModal ? (createLoading ? "Adding..." : "Add Superintendent") : "Save Changes"}
                                             </Button>
                                         </Stack>
                                     </form>

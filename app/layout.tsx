@@ -3,6 +3,7 @@ import { scienceGothic, poppins } from "@/utils/fonts";
 import "./globals.css";
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import ToastProvider from "@/components/ToastProvider";
+import { ReduxProvider } from "@/redux/provider";
 export const metadata: Metadata = {
   title: "Ship Gpt",
   description: "Ship Gpt",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${scienceGothic.variable} ${poppins.variable}`}>
         <AppRouterCacheProvider>
-          {children}
+          <ReduxProvider>
+            {children}
+          </ReduxProvider>
         </AppRouterCacheProvider>
         <ToastProvider />
       </body>

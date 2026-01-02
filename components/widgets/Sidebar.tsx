@@ -43,6 +43,10 @@ export default function Sidebar() {
             },
             '& .MuiListItemButton-root:hover': {
                 bgcolor: 'rgba(255,255,255,0.05)',
+            },
+            '& a': {
+                textDecoration: 'none',
+                color: 'inherit'
             }
         }}>
             {/* Logo */}

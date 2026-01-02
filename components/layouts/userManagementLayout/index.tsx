@@ -1,13 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
-import { authControllers } from "@/api/auth";
 import { toast } from "react-toastify";
 import {
     Box,
     Typography,
-    Button,
     Table,
     TableBody,
     TableCell,
@@ -17,92 +15,60 @@ import {
     Paper,
     IconButton,
     Modal,
-    TextField,
     Stack,
     Chip,
     Switch,
-    Divider,
-    FormControl,
-    Drawer,
-    useMediaQuery,
-    useTheme
+    Button,
+    TextField
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import { COLORS } from "@/utils/enum";
+
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { fetchUsers, updateUser, clearError } from "@/redux/slices/userSlice";
+
+interface User {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    status: string;
+}
+
 export default function UserManagementLayout() {
-    const [users, setUsers] = useState<any[]>([]);
-    const [openAddModal, setOpenAddModal] = useState(false);
+    const dispatch = useDispatch<AppDispatch>();
+    const { users, loading, error } = useSelector((state: RootState) => state.user);
+
     const [openViewModal, setOpenViewModal] = useState(false);
-    const [openEditModal, setOpenEditModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
-    const [mobileOpen, setMobileOpen] = useState(false);
-    const handleDrawerToggle = () => {
-        setMobileOpen(!mobileOpen);
-    };
     const [selectedUser, setSelectedUser] = useState<any>(null);
-    const fetchUsers = async () => {
-        try {
-            const response = await authControllers.getUsers({ role: 'USER' });
-            const docs = response.data?.data?.docs || [];
-            const formattedUsers = docs.map((user: any) => ({
-                id: user.id,
-                name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'N/A',
-                email: user.email,
-                role: user.role || 'User',
-                joined: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
-                status: user.status || (user.isActive ? "Active" : "Inactive")
-            }));
-            setUsers(formattedUsers);
-        }
-        catch (error) {
-            console.error("Failed to fetch users:", error);
-        }
-    };
+    const [isEditing, setIsEditing] = useState(false);
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        dispatch(fetchUsers());
+    }, [dispatch]);
 
-    const handleView = async (user: any) => {
-        try {
-            // The API requires user_role as a query param
-            const roleToPass = user.role === 'User' ? 'USER' : (user.role || 'USER');
-            const response = await authControllers.getUserById(user.id, roleToPass);
-            const userData = response.data?.data || response.data; // Adapt based on actual API response structure
-
-            // Map the API response to the format expected by the UI
-            const detailedUser = {
-                id: userData._id || userData.id || user.id,
-                name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.username || user.name,
-                email: userData.email || user.email,
-                role: userData.role || userData.user_role || user.role,
-                joined: userData.createdAt ? new Date(userData.createdAt).toLocaleDateString() : user.joined,
-                status: userData.status || (userData.isActive ? "Active" : "Inactive") || user.status,
-                // Add any extra fields if they exist in the detailed view
-            };
-
-            setSelectedUser(detailedUser);
-            setOpenViewModal(true);
-        } catch (error) {
-            console.error("Failed to fetch user details:", error);
-            // Fallback to existing row data if API fails, or show error
-            setSelectedUser(user);
-            setOpenViewModal(true);
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
         }
+    }, [error, dispatch]);
+
+    const handleOpenView = (user: any) => {
+        setSelectedUser(user);
+        setIsEditing(false);
+        setOpenViewModal(true);
     };
 
-    const handleEditFromView = () => {
+    const handleCloseView = () => {
+        setSelectedUser(null);
         setOpenViewModal(false);
-        setOpenEditModal(true);
-    };
-
-    const handleDeleteFromView = () => {
-        setOpenViewModal(false);
-        setOpenConfirmModal(true);
+        setIsEditing(false);
     };
 
     const handleToggleStatusClick = (user: any) => {
@@ -110,14 +76,27 @@ export default function UserManagementLayout() {
         setOpenConfirmModal(true);
     };
 
-    const confirmStatusChange = () => {
+    const confirmStatusChange = async () => {
         if (selectedUser) {
-            const newStatus = selectedUser.status === "Active" ? "Blocked" : "Active";
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, status: newStatus } : u));
-            setOpenConfirmModal(false);
-            setSelectedUser(null);
-            toast.success(`User ${newStatus === "Active" ? "activated" : "blocked"} successfully!`);
+            try {
+                const isActive = selectedUser.status === 'Active' || selectedUser.isActive === true;
+                await dispatch(updateUser({
+                    id: selectedUser.id || selectedUser._id,
+                    data: { isActive: !isActive }
+                })).unwrap();
+
+                toast.success(`User ${!isActive ? 'enabled' : 'disabled'} successfully`);
+                setOpenConfirmModal(false);
+                setSelectedUser(null);
+            } catch (err: any) {
+                toast.error(err || "Failed to update status");
+            }
         }
+    };
+
+    const commonStyles = {
+        fontFamily: 'var(--font-primary) !important',
+        color: 'var(--foreground)'
     };
 
     const modalStyle = {
@@ -127,33 +106,11 @@ export default function UserManagementLayout() {
         transform: 'translate(-50%, -50%)',
         width: { xs: '90%', sm: 500 },
         bgcolor: 'var(--card-bg)',
-        color: 'var(--foreground)',
         boxShadow: 24,
         border: '1px solid var(--border)',
         p: 4,
         outline: 'none',
-        fontFamily: 'var(--font-primary) !important'
-    };
-
-    const textFieldStyle = {
-        '& .MuiOutlinedInput-root': {
-            borderRadius: 0,
-            color: COLORS.WHITE,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            fontFamily: 'var(--font-primary) !important',
-            '& fieldset': { borderColor: COLORS.WHITE },
-            '&:hover fieldset': { borderColor: COLORS.WHITE },
-            '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
-            '&.Mui-disabled': {
-                '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.3)' },
-                '& .MuiInputBase-input': { WebkitTextFillColor: `${COLORS.WHITE} !important`, fill: COLORS.WHITE }
-            }
-        },
-        '& .MuiInputLabel-root': { color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important' },
-        '& .MuiInputLabel-root.Mui-focused': { color: COLORS.WHITE },
-        '& .MuiSelect-icon': { color: COLORS.WHITE },
-        '& .MuiInputBase-input': { fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE },
-        '& .MuiMenuItem-root': { fontFamily: 'var(--font-primary) !important' }
+        ...commonStyles
     };
 
     const confirmModalStyle = {
@@ -161,7 +118,7 @@ export default function UserManagementLayout() {
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: { xs: '90%', sm: 400 },
+        width: 400,
         bgcolor: 'var(--card-bg)',
         color: 'var(--foreground)',
         boxShadow: 24,
@@ -173,179 +130,197 @@ export default function UserManagementLayout() {
     };
 
     return (
-        <Box sx={{ display: "flex", minHeight: "100vh" }}>
-            {/* Mobile Sidebar Drawer */}
-            <Drawer
-                variant="temporary"
-                open={mobileOpen}
-                onClose={handleDrawerToggle}
-                ModalProps={{
-                    keepMounted: true,
-                }}
-                sx={{
-                    display: { xs: 'block', md: 'none' },
-                    '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
-                }}
-            >
-                <Sidebar />
-            </Drawer>
-
-            {/* Desktop Sidebar – 20% */}
-            <Box sx={{ width: "20%", display: { xs: 'none', md: 'block' } }}>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+            {/* Sidebar – Fixed */}
+            <Box sx={{ width: "20%", height: "100%", overflowY: "auto", borderRight: "1px solid var(--border)" }}>
                 <Sidebar />
             </Box>
 
-            {/* Main – Responsive Width */}
-            <Box sx={{ width: { xs: "100%", md: "80%" }, flexGrow: 1 }}>
-                <Navbar onMenuClick={handleDrawerToggle} />
-                <Box sx={{ p: 3 }}>
-                    <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="h4" fontWeight={700} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
+            {/* Main Content */}
+            <Box sx={{ width: "80%", height: "100%", display: "flex", flexDirection: "column" }}>
+                <Navbar />
+                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
+                    <Box sx={{ mb: 4 }}>
+                        <Typography variant="h4" fontWeight={700} sx={commonStyles}>
                             User Management
                         </Typography>
-
                     </Box>
 
-                    {/* User Table */}
-                    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 0, bgcolor: "var(--card-bg)", overflowX: 'auto' }}>
+                    {/* Table */}
+                    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 0, bgcolor: "var(--card-bg)" }}>
                         <Table sx={{ minWidth: 650 }} aria-label="user table">
                             <TableHead sx={{ bgcolor: "var(--card-bg)" }}>
                                 <TableRow>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Name</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Email</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Role</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Joined Date</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>Status</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, color: "var(--foreground)", textAlign: 'right', fontFamily: 'var(--font-primary) !important' }}>Actions</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Name</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Email</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Role</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Status</TableCell>
+                                    <TableCell sx={{ fontWeight: 600, textAlign: 'right', ...commonStyles }}>Actions</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {users.map((row) => (
-                                    <TableRow
-                                        key={row.id}
-                                        sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                                    >
-                                        <TableCell component="th" scope="row" sx={{ fontWeight: 500, color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
-                                            {row.name}
-                                        </TableCell>
-                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.email}</TableCell>
-                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.role}</TableCell>
-                                        <TableCell sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>{row.joined}</TableCell>
-                                        <TableCell>
-                                            <Switch
-                                                checked={row.status === 'Active'}
-                                                onChange={() => handleToggleStatusClick(row)}
-                                                color="success"
-                                                sx={{
-                                                    '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <IconButton
-                                                onClick={() => handleView(row)}
-                                                sx={{ color: "var(--foreground)" }}
-                                            >
-                                                <RemoveRedEyeIcon />
-                                            </IconButton>
-                                        </TableCell>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ ...commonStyles, py: 4 }}>Loading...</TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    users.map((row) => (
+                                        <TableRow key={row.id || row._id || Math.random()} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                                            <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
+                                                {row.firstName} {row.lastName}
+                                            </TableCell>
+                                            <TableCell sx={commonStyles}>{row.email}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={row.role || "User"}
+                                                    size="small"
+                                                    sx={{
+                                                        borderRadius: 0,
+                                                        bgcolor: 'rgba(255,255,255,0.05)',
+                                                        color: "var(--foreground)",
+                                                        fontWeight: 500,
+                                                        fontFamily: 'var(--font-primary) !important'
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Switch
+                                                    checked={row.status === 'Active' || row.isActive === true}
+                                                    onChange={() => handleToggleStatusClick(row)}
+                                                    color="success"
+                                                    sx={{
+                                                        '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
+                                                    <RemoveRedEyeIcon />
+                                                </IconButton>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </TableContainer>
 
-
-                    {/* Edit User Modal */}
-                    <Modal open={openEditModal} onClose={() => setOpenEditModal(false)}>
+                    {/* View/Edit Modal (Basic) */}
+                    <Modal open={openViewModal} onClose={handleCloseView}>
                         <Box sx={modalStyle}>
-                            <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
-                                Edit User
-                            </Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                <Typography variant="h6" fontWeight={600} sx={commonStyles}>
+                                    {isEditing ? "Edit User Details" : "User Details"}
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    {!isEditing && (
+                                        <IconButton onClick={() => setIsEditing(true)} sx={{ color: "var(--foreground)", mr: 1 }}>
+                                            <EditIcon />
+                                        </IconButton>
+                                    )}
+                                    <IconButton onClick={handleCloseView} sx={{ color: "var(--text-secondary)" }}>
+                                        <CloseIcon />
+                                    </IconButton>
+                                </Box>
+                            </Box>
                             <Stack spacing={2}>
-                                <TextField label="Full Name" defaultValue={selectedUser?.name} fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Email Address" defaultValue={selectedUser?.email} type="email" fullWidth variant="outlined" sx={textFieldStyle} />
-                                <TextField label="Role" defaultValue={selectedUser?.role} fullWidth variant="outlined" sx={textFieldStyle} />
-                                <Button
-                                    variant="contained"
-                                    fullWidth
-                                    size="large"
-                                    sx={{
-                                        mt: 2,
-                                        bgcolor: COLORS.GREEN,
-                                        color: COLORS.WHITE,
-                                        border: "1px solid var(--border)",
-                                        borderRadius: 0,
-                                        fontFamily: 'var(--font-primary) !important',
-                                        "&:hover": { bgcolor: COLORS.GREEN_DARK, border: `1px solid ${COLORS.GREEN_DARK}` },
-                                    }}
-                                    onClick={() => {
-                                        setOpenEditModal(false);
-                                        toast.success("User details updated successfully!");
-                                    }}
-                                >
-                                    Save Changes
-                                </Button>
-                            </Stack>
-                        </Box>
-                    </Modal>
-
-                    {/* View Details Modal */}
-                    <Modal open={openViewModal} onClose={() => setOpenViewModal(false)}>
-                        <Box sx={modalStyle}>
-                            {selectedUser && (
-                                <>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                            <Typography variant="h6" fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
-                                                User Profile
-                                            </Typography>
-                                            <Chip
-                                                label={selectedUser.status}
-                                                size="small"
-                                                sx={{
-                                                    borderRadius: 0,
+                                {isEditing ? (
+                                    <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <TextField
+                                            label="First Name"
+                                            fullWidth
+                                            variant="outlined"
+                                            value={selectedUser?.firstName || ''}
+                                            onChange={(e) => setSelectedUser({ ...selectedUser, firstName: e.target.value })}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
                                                     color: COLORS.WHITE,
-                                                    borderColor: COLORS.WHITE,
-                                                    fontFamily: 'var(--font-primary) !important'
-                                                }}
-                                                color={selectedUser.status === 'Active' ? 'success' : 'error'}
-                                                variant="outlined"
-                                            />
-                                        </Box>
-                                        <Box>
-                                            <IconButton onClick={handleEditFromView} sx={{ color: "var(--foreground)", mr: 1 }}>
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton onClick={handleDeleteFromView} sx={{ color: COLORS.RED }}>
-                                                <DeleteIcon />
-                                            </IconButton>
-                                            <IconButton onClick={() => setOpenViewModal(false)} sx={{ color: "var(--text-secondary)" }}>
-                                                <CloseIcon />
-                                            </IconButton>
-                                        </Box>
+                                                    '& fieldset': { borderColor: COLORS.WHITE },
+                                                    '&:hover fieldset': { borderColor: COLORS.WHITE },
+                                                    '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
+                                                },
+                                                '& .MuiInputLabel-root': { color: COLORS.WHITE },
+                                                '& .MuiInputBase-input': { color: COLORS.WHITE },
+                                            }}
+                                        />
+                                        <TextField
+                                            label="Last Name"
+                                            fullWidth
+                                            variant="outlined"
+                                            value={selectedUser?.lastName || ''}
+                                            onChange={(e) => setSelectedUser({ ...selectedUser, lastName: e.target.value })}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    color: COLORS.WHITE,
+                                                    '& fieldset': { borderColor: COLORS.WHITE },
+                                                    '&:hover fieldset': { borderColor: COLORS.WHITE },
+                                                    '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
+                                                },
+                                                '& .MuiInputLabel-root': { color: COLORS.WHITE },
+                                                '& .MuiInputBase-input': { color: COLORS.WHITE },
+                                            }}
+                                        />
+                                        <TextField
+                                            label="Role"
+                                            fullWidth // You might want a Select here ideally, but keeping it text for flexibility as per screenshot "role": "CREW"
+                                            variant="outlined"
+                                            value={selectedUser?.role || ''}
+                                            onChange={(e) => setSelectedUser({ ...selectedUser, role: e.target.value })}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    color: COLORS.WHITE,
+                                                    '& fieldset': { borderColor: COLORS.WHITE },
+                                                    '&:hover fieldset': { borderColor: COLORS.WHITE },
+                                                    '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
+                                                },
+                                                '& .MuiInputLabel-root': { color: COLORS.WHITE },
+                                                '& .MuiInputBase-input': { color: COLORS.WHITE },
+                                            }}
+                                        />
+                                        <Button
+                                            onClick={async () => {
+                                                try {
+                                                    await dispatch(updateUser({
+                                                        id: selectedUser.id || selectedUser._id,
+                                                        data: {
+                                                            firstName: selectedUser.firstName,
+                                                            lastName: selectedUser.lastName,
+                                                            role: selectedUser.role
+                                                        }
+                                                    })).unwrap();
+                                                    toast.success("User details updated successfully");
+                                                    setIsEditing(false);
+                                                } catch (err: any) {
+                                                    toast.error(err || "Failed to update user");
+                                                }
+                                            }}
+                                            variant="contained"
+                                            sx={{
+                                                bgcolor: COLORS.GREEN,
+                                                color: COLORS.WHITE,
+                                                '&:hover': { bgcolor: COLORS.GREEN_DARK }
+                                            }}
+                                        >
+                                            Save Changes
+                                        </Button>
                                     </Box>
-
-                                    <Stack spacing={2}>
+                                ) : (
+                                    <>
                                         <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Full Name</Typography>
-                                            <Typography variant="body1" fontWeight={500} sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.name}</Typography>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Name</Typography>
+                                            <Typography variant="body1" fontWeight={500} sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser?.firstName} {selectedUser?.lastName}</Typography>
                                         </Box>
                                         <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Email Address</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.email}</Typography>
+                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Email</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser?.email}</Typography>
                                         </Box>
                                         <Box>
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.role}</Typography>
+                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser?.role || "User"}</Typography>
                                         </Box>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Date Joined</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedUser.joined}</Typography>
-                                        </Box>
-                                    </Stack>
-                                </>
-                            )}
+                                    </>
+                                )}
+                            </Stack>
                         </Box>
                     </Modal>
 
@@ -353,10 +328,10 @@ export default function UserManagementLayout() {
                     <Modal open={openConfirmModal} onClose={() => setOpenConfirmModal(false)}>
                         <Box sx={confirmModalStyle}>
                             <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
-                                {selectedUser?.status === "Active" ? "Disable Profile" : "Enable Profile"}
+                                {selectedUser?.status === "Active" ? "Disable User" : "Enable User"}
                             </Typography>
                             <Typography variant="body2" sx={{ mb: 3, color: "var(--text-secondary)", fontFamily: 'var(--font-primary) !important' }}>
-                                Are you sure you want to {selectedUser?.status === "Active" ? "disable" : "enable"} this user&#39;s profile?
+                                Are you sure you want to {selectedUser?.status === "Active" ? "disable" : "enable"} this user's account?
                             </Typography>
 
                             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
@@ -391,7 +366,6 @@ export default function UserManagementLayout() {
                             </Box>
                         </Box>
                     </Modal>
-
                 </Box>
             </Box>
         </Box>
