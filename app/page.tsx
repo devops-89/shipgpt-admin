@@ -32,17 +32,13 @@ export default function LoginPage() {
         const response = await authControllers.login(values);
         console.log("LOGIN RESPONSE FULL:", response);
         console.log("LOGIN RESPONSE DATA:", response.data);
-
-        // Robust check for token in various common locations
-        const token =
-          // response.data?.access_token ||
-          response.data?.data?.access_token;
+        const token = response.data?.data?.access_token;
 
         if (token) {
           console.log("Saving Access Token:", token);
           localStorage.setItem("accessToken", token);
 
-          // Try to extract and save user role
+        
           const user = response.data?.data?.user || response.data?.data;
           const role = user?.role || user?.user_role || (user?.isAdmin ? 'ADMIN' : '') || (user?.isSuperAdmin ? 'SUPER_ADMIN' : '');
 
@@ -51,7 +47,7 @@ export default function LoginPage() {
             localStorage.setItem("userRole", role);
           } else {
             console.warn("User role not found in login response");
-            // Fallback: If no role found, maybe we act based on assumptions or future profile fetch
+            
           }
 
           router.push("/admin-management");
