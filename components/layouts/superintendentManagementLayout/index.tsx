@@ -59,12 +59,12 @@ export default function SuperintendentManagementLayout() {
         if (storedRole) setUserRole(storedRole);
     }, []);
 
-    // Fetch on mount
+
     useEffect(() => {
         dispatch(fetchSuperintendents());
     }, [dispatch]);
 
-    // Handle errors
+    
     useEffect(() => {
         if (error) {
             toast.error(error);

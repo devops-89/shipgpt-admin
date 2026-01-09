@@ -21,7 +21,7 @@ export const createCrew = createAsyncThunk(
             const response = await authControllers.createCrew(crewData);
             return response.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Failed to create crew member"); // Access specific error message if possible
+            return rejectWithValue(error.response?.data?.message || "Failed to create crew member"); 
         }
     }
 );
@@ -71,7 +71,7 @@ const crewSlice = createSlice({
             })
             .addCase(createCrew.rejected, (state, action) => {
                 state.createLoading = false;
-                // Check if payload is an object (validation errors) or string
+                
                 state.error = action.payload as string;
             });
     },

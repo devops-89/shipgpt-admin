@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import CloseIcon from "@mui/icons-material/Close";
 import { COLORS } from "@/utils/enum";
 
 // Redux imports
@@ -35,7 +36,6 @@ import { fetchAdmins, createAdmin, clearError } from "@/redux/slices/adminSlice"
 export default function AdminManagementLayout() {
     const dispatch = useDispatch<AppDispatch>();
     const { admins, loading, error, createLoading } = useSelector((state: RootState) => state.admin);
-
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
     const [openConfirmModal, setOpenConfirmModal] = useState(false);
@@ -78,8 +78,7 @@ export default function AdminManagementLayout() {
 
     const confirmStatusChange = () => {
         if (selectedAdmin) {
-            // Dispatch update action if we had one implemented in redux
-            // For now we mock it locally or we can add updateAdmin thunk later
+
             toast.info("Status update logic needs API integration via Redux");
             setOpenConfirmModal(false);
             setSelectedAdmin(null);
@@ -375,7 +374,9 @@ export default function AdminManagementLayout() {
                                         <Typography variant="h6" fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
                                             Admin Details
                                         </Typography>
-                                        <Chip label={selectedAdmin.status} size="small" sx={{ borderRadius: 0, color: COLORS.WHITE, borderColor: COLORS.WHITE }} variant="outlined" />
+                                        <IconButton onClick={handleCloseView} size="small" sx={{ color: COLORS.WHITE }}>
+                                            <CloseIcon />
+                                        </IconButton>
                                     </Box>
 
                                     <Stack spacing={2}>
@@ -391,14 +392,7 @@ export default function AdminManagementLayout() {
                                             <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
                                             <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedAdmin.role}</Typography>
                                         </Box>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Permissions</Typography>
-                                            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                                                <Chip label="User Mgmt" size="small" variant="outlined" sx={{ borderRadius: 0, color: COLORS.WHITE, borderColor: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-primary) !important' }} />
-                                                <Chip label="PDF Mgmt" size="small" variant="outlined" sx={{ borderRadius: 0, color: COLORS.WHITE, borderColor: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-primary) !important' }} />
-                                                <Chip label="Settings" size="small" variant="outlined" sx={{ borderRadius: 0, color: COLORS.WHITE, borderColor: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-primary) !important' }} />
-                                            </Box>
-                                        </Box>
+
                                     </Stack>
 
                                     <Button

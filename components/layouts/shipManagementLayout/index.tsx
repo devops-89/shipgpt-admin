@@ -37,6 +37,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
+import DownloadIcon from "@mui/icons-material/Download";
 import { COLORS } from "@/utils/enum";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -49,6 +50,7 @@ import { shipControllers } from "@/api/ship"; // Keeping for delete/update which
 interface ShipDocument {
     name: string;
     file?: File;
+    downloadUrl?: string;
 }
 
 interface Ship {
@@ -87,24 +89,7 @@ export default function ShipManagementLayout() {
         }
     }, [error, dispatch]);
 
-    // Sync detailed ship selection
-    useEffect(() => {
-        if (reduxSelectedShip && openViewModal) {
-            const detailedShip: Ship = {
-                id: reduxSelectedShip._id || reduxSelectedShip.id,
-                name: reduxSelectedShip.name,
-                imo: reduxSelectedShip.IMO,
-                status: reduxSelectedShip.isActive ? "Active" : "Maintenance",
-                documents: reduxSelectedShip.documents || {},
-                adminName: reduxSelectedShip.admin ? `${reduxSelectedShip.admin.firstName} ${reduxSelectedShip.admin.lastName}` : "N/A"
-            };
-            setSelectedShip(detailedShip);
-            setName(detailedShip.name);
-            setImo(detailedShip.imo);
-            setAdminName(detailedShip.adminName || "N/A");
-            setPendingDocuments(detailedShip.documents || {});
-        }
-    }, [reduxSelectedShip]);
+
 
     const [openAddModal, setOpenAddModal] = useState(false);
     const [openViewModal, setOpenViewModal] = useState(false);
@@ -131,6 +116,45 @@ export default function ShipManagementLayout() {
         'Mechanical': []
     });
 
+    // Sync detailed ship selection
+    useEffect(() => {
+        if (reduxSelectedShip && openViewModal) {
+            // Map API pdfs array to grouped documents
+            const docs: Record<string, ShipDocument[]> = { 'Compliance': [], 'Crewing': [], 'Mechanical': [] };
+
+            if (reduxSelectedShip.pdfs && Array.isArray(reduxSelectedShip.pdfs)) {
+                reduxSelectedShip.pdfs.forEach((pdf: any) => {
+                    // Normalize type (API is uppercase, UI is Title Case)
+                    // e.g. "MECHANICAL" -> "Mechanical"
+                    if (pdf.type) {
+                        const typeKey = pdf.type.charAt(0).toUpperCase() + pdf.type.slice(1).toLowerCase();
+                        if (docs[typeKey]) {
+                            docs[typeKey].push({
+                                name: pdf.originalFileName,
+                                downloadUrl: pdf.downloadUrl
+                            });
+                        }
+                    }
+                });
+            }
+
+            const detailedShip: Ship = {
+                id: reduxSelectedShip._id || reduxSelectedShip.id,
+                name: reduxSelectedShip.name,
+                imo: reduxSelectedShip.IMO,
+                status: reduxSelectedShip.isActive ? "Active" : "Maintenance",
+                documents: docs,
+                adminName: reduxSelectedShip.admin ? `${reduxSelectedShip.admin.firstName} ${reduxSelectedShip.admin.lastName}` : "N/A"
+            };
+            setSelectedShip(detailedShip);
+            setName(detailedShip.name);
+            setImo(detailedShip.imo);
+            setAdminName(detailedShip.adminName || "N/A");
+        
+            setPendingDocuments({ 'Compliance': [], 'Crewing': [], 'Mechanical': [] });
+        }
+    }, [reduxSelectedShip, openViewModal]);
+
     const resetForm = () => {
         setName("");
         setImo("");
@@ -145,10 +169,10 @@ export default function ShipManagementLayout() {
     };
 
     const handleOpenView = (ship: Ship) => {
-    
+
         setOpenViewModal(true);
         setIsEditing(false);
-    
+
         dispatch(fetchShipDetails(ship.id.toString()));
     };
 
@@ -590,18 +614,53 @@ export default function ShipManagementLayout() {
                                     <Stack spacing={2}>
                                         {CATEGORIES.map(category => (
                                             <Box key={category}>
-                                                {pendingDocuments[category]?.length > 0 && (
+                                                {(pendingDocuments[category]?.length > 0 || (selectedShip?.documents[category] && selectedShip.documents[category].length > 0)) && (
                                                     <>
                                                         <Typography variant="subtitle2" sx={{ color: 'var(--text-secondary)', mb: 1 }}>
                                                             {category}
                                                         </Typography>
                                                         <List dense sx={{ bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1 }}>
-                                                            {pendingDocuments[category].map((doc, idx) => (
-                                                                <ListItem key={idx} divider={idx !== pendingDocuments[category].length - 1}>
+                                                            {/* Existing Documents */}
+                                                            {selectedShip?.documents && selectedShip.documents[category]?.map((doc, idx) => (
+                                                                <ListItem key={`existing-${idx}`} divider={idx !== (selectedShip.documents[category].length - 1) || pendingDocuments[category].length > 0}>
                                                                     <ListItemText
                                                                         primary={<Box display="flex" alignItems="center" gap={1}>
                                                                             <InsertDriveFileIcon fontSize="small" color="primary" />
-                                                                            <Typography variant="body2" sx={commonStyles}>{doc.name}</Typography>
+                                                                            <Box>
+                                                                                <Typography variant="body2" sx={commonStyles}>{doc.name}</Typography>
+                                                                                <Typography variant="caption" sx={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>Existing</Typography>
+                                                                            </Box>
+                                                                        </Box>}
+                                                                    />
+                                                                    <ListItemSecondaryAction>
+                                                                        {doc.downloadUrl && (
+                                                                            <IconButton
+                                                                                edge="end"
+                                                                                size="small"
+                                                                                component="a"
+                                                                                href={doc.downloadUrl}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                sx={{ color: COLORS.PRIMARY_BLUE }}
+                                                                                title="Download"
+                                                                            >
+                                                                                <DownloadIcon fontSize="small" />
+                                                                            </IconButton>
+                                                                        )}
+                                                                    </ListItemSecondaryAction>
+                                                                </ListItem>
+                                                            ))}
+
+                                                            {/* Pending Documents */}
+                                                            {pendingDocuments[category].map((doc, idx) => (
+                                                                <ListItem key={`pending-${idx}`} divider={idx !== pendingDocuments[category].length - 1}>
+                                                                    <ListItemText
+                                                                        primary={<Box display="flex" alignItems="center" gap={1}>
+                                                                            <InsertDriveFileIcon fontSize="small" color="warning" />
+                                                                            <Box>
+                                                                                <Typography variant="body2" sx={commonStyles}>{doc.name}</Typography>
+                                                                                <Typography variant="caption" sx={{ color: 'orange', fontSize: '0.7rem' }}>Pending Upload</Typography>
+                                                                            </Box>
                                                                         </Box>}
                                                                     />
                                                                     {(openAddModal || isEditing) && (

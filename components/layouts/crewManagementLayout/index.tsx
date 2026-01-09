@@ -52,19 +52,14 @@ export default function CrewManagementLayout() {
     const [selectedCrew, setSelectedCrew] = useState<any>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [userRole, setUserRole] = useState<string>("");
-
-    // Fetch user role
     useEffect(() => {
         const storedRole = localStorage.getItem("userRole");
         if (storedRole) setUserRole(storedRole);
     }, []);
-
-    // Fetch crews on mount
     useEffect(() => {
         dispatch(fetchCrew());
     }, [dispatch]);
 
-    // Handle global errors for this component
     useEffect(() => {
         if (error) {
             toast.error(error);
@@ -120,7 +115,7 @@ export default function CrewManagementLayout() {
         setIsEditing(false);
     };
 
-    // Placeholder for Edit - purely visual for now since we focus on Create API
+    
     const handleUpdateCrew = () => {
         toast.info("Update functionality coming soon");
         setOpenViewModal(false);
@@ -133,8 +128,7 @@ export default function CrewManagementLayout() {
 
     const confirmStatusChange = () => {
         if (selectedCrew) {
-            // Mock status change
-            // In real app, dispatch an updateCrew action
+           
             toast.info("Status update needs API integration");
             setOpenConfirmModal(false);
             setSelectedCrew(null);

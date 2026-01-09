@@ -41,8 +41,6 @@ export default function LoginPage() {
         if (token) {
           console.log("Saving Access Token:", token);
           localStorage.setItem("accessToken", token);
-
-
           const user = response.data?.data?.user || response.data?.data;
           const role = user?.role || user?.user_role || (user?.isAdmin ? 'ADMIN' : '') || (user?.isSuperAdmin ? 'SUPER_ADMIN' : '');
 
@@ -51,7 +49,6 @@ export default function LoginPage() {
             localStorage.setItem("userRole", role);
           } else {
             console.warn("User role not found in login response");
-
           }
 
           router.push("/admin-management");
@@ -148,12 +145,12 @@ export default function LoginPage() {
                 "& input": {
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
                   backgroundColor: "transparent !important",
-                  // Transition to keep background transparent
+                  
                   transition: "background-color 5000s ease-in-out 0s !important",
                   "&:-webkit-autofill": {
                     transition: "background-color 5000s ease-in-out 0s !important",
                     WebkitTextFillColor: `${COLORS.WHITE} !important`,
-                    // Force transparent shadow to avoid distinct color box if standard transparency fails
+                    
                     WebkitBoxShadow: "0 0 0 1000px transparent inset !important",
                     backgroundColor: "transparent !important",
                     backgroundClip: "text !important",
@@ -263,7 +260,7 @@ export default function LoginPage() {
                 },
                 fontFamily: `${scienceGothic.style.fontFamily} !important`,
               }}
-            >
+            > 
               Login
             </Button>
             <Backdrop
