@@ -38,7 +38,6 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
-import DownloadIcon from "@mui/icons-material/Download";
 import { COLORS } from "@/utils/enum";
 
 import { useDispatch, useSelector } from "react-redux";
