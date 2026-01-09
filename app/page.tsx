@@ -10,6 +10,7 @@ import {
   InputAdornment,
   TextField,
   Typography,
+  Backdrop,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -18,8 +19,10 @@ import { COLORS } from "@/utils/enum";
 import { useFormik } from "formik";
 import { loginValidationSchema } from "@/utils/validationSchema";
 import { useRouter } from "next/navigation";
+import CircularProgress from '@mui/material/CircularProgress';
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const formik = useFormik({
     initialValues: {
@@ -28,17 +31,18 @@ export default function LoginPage() {
     },
     validationSchema: loginValidationSchema,
     onSubmit: async (values) => {
+      setLoading(true);
       try {
         const response = await authControllers.login(values);
         console.log("LOGIN RESPONSE FULL:", response);
-        console.log("LOGIN RESPONSE DATA:", response.data);
+        console.log("LOGIN RESPONSE data:", response.data);
         const token = response.data?.data?.access_token;
 
         if (token) {
           console.log("Saving Access Token:", token);
           localStorage.setItem("accessToken", token);
 
-        
+
           const user = response.data?.data?.user || response.data?.data;
           const role = user?.role || user?.user_role || (user?.isAdmin ? 'ADMIN' : '') || (user?.isSuperAdmin ? 'SUPER_ADMIN' : '');
 
@@ -47,7 +51,7 @@ export default function LoginPage() {
             localStorage.setItem("userRole", role);
           } else {
             console.warn("User role not found in login response");
-            
+
           }
 
           router.push("/admin-management");
@@ -55,10 +59,12 @@ export default function LoginPage() {
           console.warn("Available keys in response:", Object.keys(response.data || {}));
           console.error("Access Token NOT found. Response was:", response.data);
           alert("Login succeeded but token missing. check console for 'LOGIN RESPONSE DATA'");
+          setLoading(false);
         }
       } catch (error) {
         console.error("Login failed", error);
         alert("Login failed. Please check your credentials.");
+        setLoading(false);
       }
     },
   });
@@ -119,7 +125,8 @@ export default function LoginPage() {
             <TextField
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  color: COLORS.WHITE,
+                  color: COLORS.
+                WHITE,
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
                   "& fieldset": {
                     borderColor: "rgba(255, 255, 255, 0.3)",
@@ -259,6 +266,13 @@ export default function LoginPage() {
             >
               Login
             </Button>
+            <Backdrop
+              sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+              open={loading}
+            >
+              <CircularProgress color="inherit" />
+            </Backdrop>
+
           </form>
         </CardContent>
       </Card>

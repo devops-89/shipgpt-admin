@@ -145,12 +145,10 @@ export default function ShipManagementLayout() {
     };
 
     const handleOpenView = (ship: Ship) => {
-        // Dispatch fetch details
+    
         setOpenViewModal(true);
         setIsEditing(false);
-        // We set basic info first while loading details
-        // Or wait for effect. 
-        // Ideally pass ID to thunk
+    
         dispatch(fetchShipDetails(ship.id.toString()));
     };
 
@@ -162,7 +160,20 @@ export default function ShipManagementLayout() {
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && selectedCategory) {
-            const newDocs = Array.from(e.target.files).map(file => ({
+            const files = Array.from(e.target.files);
+            const maxSize = 5 * 1024 * 1024; // 5MB limit
+
+            const validFiles = files.filter(file => {
+                if (file.size > maxSize) {
+                    toast.error(`File "${file.name}" is too large (max 5MB).`);
+                    return false;
+                }
+                return true;
+            });
+
+            if (validFiles.length === 0) return;
+
+            const newDocs = validFiles.map(file => ({
                 name: file.name,
                 file: file
             }));
@@ -171,6 +182,8 @@ export default function ShipManagementLayout() {
                 ...prev,
                 [selectedCategory]: [...(prev[selectedCategory] || []), ...newDocs]
             }));
+
+            e.target.value = '';
         }
     };
     const handleToggleStatusClick = (ship: Ship) => {
@@ -186,6 +199,30 @@ export default function ShipManagementLayout() {
         }
     };
 
+    const uploadPendingDocs = async (shipId: string | number) => {
+        for (const [category, docs] of Object.entries(pendingDocuments)) {
+            for (const doc of docs) {
+                const formData = new FormData();
+                formData.append("file", doc.file as File);
+                formData.append("shipId", String(shipId));
+                formData.append("type", category.toUpperCase());
+
+                try {
+                    console.log(`Uploading ${doc.name} for ship ${shipId}...`);
+                    await shipControllers.uploadPdf(formData);
+                    toast.success(`${doc.name} uploaded successfully`);
+                } catch (err: any) {
+                    console.error(`Failed to upload ${doc.name}`, err);
+                    if (err.response && err.response.status === 413) {
+                        toast.error(`File "${doc.name}" is too large for the server.`);
+                    } else {
+                        toast.error(`Failed to upload ${doc.name}`);
+                    }
+                }
+            }
+        }
+    };
+
     const handleAddShip = async () => {
         const payload = {
             name: name,
@@ -195,6 +232,20 @@ export default function ShipManagementLayout() {
         const resultAction = await dispatch(createShip(payload));
         if (createShip.fulfilled.match(resultAction)) {
             toast.success("Ship created successfully!");
+
+            // Attempt to get the new ship ID
+            // Assuming payload structure follows previous patterns: response.data.data or response.data
+            const responseData = resultAction.payload as any;
+            const newShip = responseData?.data?.data || responseData?.data || responseData;
+            const newShipId = newShip?.id || newShip?._id;
+
+            if (newShipId) {
+                await uploadPendingDocs(newShipId);
+            } else {
+                console.error("Could not find Ship ID in create response", responseData);
+                toast.warning("Ship created but could not upload documents (ID missing).");
+            }
+
             setOpenAddModal(false);
             resetForm();
             dispatch(fetchShips());
@@ -206,11 +257,14 @@ export default function ShipManagementLayout() {
         const payload = {
             name: name,
             IMO: imo,
-            // Handle documents separately if needed or if supported by update endpoint
         };
 
         try {
             await shipControllers.updateShip(selectedShip.id, payload);
+
+            // Upload any pending documents for this ship
+            await uploadPendingDocs(selectedShip.id);
+
             dispatch(fetchShips());
             setSelectedShip(null);
             setIsEditing(false);

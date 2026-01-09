@@ -1,6 +1,7 @@
 import { shippublicApi, shipsecuredApi } from "./config";
 export const shipControllers = {
     createShip: async (data) => {
+        console.log("Trace: calling createShip");
         try {
             let result = await shipsecuredApi.post("/ships/create", data)
             console.log("ship created raw:", result.data)
@@ -48,6 +49,16 @@ export const shipControllers = {
         }
         catch (error) {
             throw error
+        }
+    },
+    uploadPdf: async (formData) => {
+        console.log("Trace: calling uploadPdf");
+        try {
+            let result = await shipsecuredApi.post("/ingestion/pdf", formData);
+            console.log("pdf uploaded raw:", result.data);
+            return result;
+        } catch (error) {
+            throw error;
         }
     }
 };

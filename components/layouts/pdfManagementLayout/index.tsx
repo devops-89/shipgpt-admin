@@ -3,6 +3,7 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/layouts/dashboardLayout";
 import { toast } from "react-toastify";
+import { shipControllers } from "@/api/ship";
 import {
     Box,
     Typography,
@@ -40,35 +41,57 @@ export default function PdfManagementLayout() {
         }
     };
 
+    const handleFileUpload = async (file: File) => {
+        // Limit file size to 10 MB
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("File size must be 10 MB or less.");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("shipId", "3");
+        formData.append("type", "MECHANICAL");
+
+        for (var pair of formData.entries()) {
+            console.log(pair[0] + ', ' + pair[1]);
+        }
+
+        try {
+            const response = await shipControllers.uploadPdf(formData);
+            console.log("Upload success:", response);
+
+            setFiles(prev => [...prev, {
+                id: Date.now(),
+                name: file.name,
+                size: (file.size / (1024 * 1024)).toFixed(2) + "MB",
+                date: new Date().toISOString().split('T')[0]
+            }]);
+
+            toast.success(`File "${file.name}" uploaded successfully!`);
+        } catch (error) {
+            console.error("Upload failed:", error);
+            toast.error("Failed to upload file.");
+        }
+    };
+
     const handleDrop = (e: any) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            // Handle file upload
-            const newFile = e.dataTransfer.files[0];
-            setFiles([...files, {
-                id: Date.now(),
-                name: newFile.name,
-                size: (newFile.size / (1024 * 1024)).toFixed(2) + " MB",
-                date: new Date().toISOString().split('T')[0]
-            }]);
-            toast.success(`File "${newFile.name}" uploaded successfully!`);
+            handleFileUpload(e.dataTransfer.files[0]);
         }
     };
 
     const handleChange = (e: any) => {
-        e.preventDefault();
+
+        console.log("File input changed");
         if (e.target.files && e.target.files[0]) {
-            const newFile = e.target.files[0];
-            setFiles([...files, {
-                id: Date.now(),
-                name: newFile.name,
-                size: (newFile.size / (1024 * 1024)).toFixed(2) + " MB",
-                date: new Date().toISOString().split('T')[0]
-            }]);
-            toast.success(`File "${newFile.name}" uploaded successfully!`);
+            console.log("File found:", e.target.files[0].name);
+            handleFileUpload(e.target.files[0]);
         }
+
+        e.target.value = '';
     };
 
     return (
@@ -152,7 +175,7 @@ export default function PdfManagementLayout() {
                                             secondary={<Typography variant="caption" sx={{ color: "rgba(255, 255, 255, 0.7)" }}>{file.size} • {file.date}</Typography>}
                                             primaryTypographyProps={{ fontWeight: 500, color: 'var(--foreground)' }}
                                         />
-                                        <ListItemSecondaryAction>
+                                        <ListItem>
                                             <IconButton edge="end" sx={{ color: 'var(--foreground)', mr: 1 }}>
                                                 <DownloadIcon />
                                             </IconButton>
@@ -162,7 +185,7 @@ export default function PdfManagementLayout() {
                                             }}>
                                                 <DeleteIcon />
                                             </IconButton>
-                                        </ListItemSecondaryAction>
+                                        </ListItem>
                                     </ListItem>
                                     {index < files.length - 1 && <Divider sx={{ borderColor: 'var(--border)' }} />}
                                 </Box>
