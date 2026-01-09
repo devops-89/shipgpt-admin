@@ -42,7 +42,7 @@ export default function PdfManagementLayout() {
     };
 
     const handleFileUpload = async (file: File) => {
-        // Limit file size to 10 MB
+    
         if (file.size > 10 * 1024 * 1024) {
             toast.error("File size must be 10 MB or less.");
             return;
