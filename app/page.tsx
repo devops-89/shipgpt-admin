@@ -260,7 +260,7 @@ export default function LoginPage() {
                 },
                 fontFamily: `${scienceGothic.style.fontFamily} !important`,
               }}
-            >
+            > 
               Login
             </Button>
             <Backdrop

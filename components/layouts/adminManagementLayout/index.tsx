@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import CloseIcon from "@mui/icons-material/Close";
 import { COLORS } from "@/utils/enum";
 
 import { useDispatch, useSelector } from "react-redux";
