@@ -16,13 +16,13 @@ import {
     ListItemAvatar,
     Avatar,
     ListItemText,
-    ListItemSecondaryAction,
     Divider,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import { COLORS } from "@/utils/enum";
 
 export default function PdfManagementLayout() {
     const [dragActive, setDragActive] = useState(false);
@@ -42,7 +42,6 @@ export default function PdfManagementLayout() {
     };
 
     const handleFileUpload = async (file: File) => {
-    
         if (file.size > 10 * 1024 * 1024) {
             toast.error("File size must be 10 MB or less.");
             return;
@@ -52,20 +51,19 @@ export default function PdfManagementLayout() {
         formData.append("shipId", "3");
         formData.append("type", "MECHANICAL");
 
-        for (var pair of formData.entries()) {
-            console.log(pair[0] + ', ' + pair[1]);
-        }
-
         try {
             const response = await shipControllers.uploadPdf(formData);
             console.log("Upload success:", response);
 
-            setFiles(prev => [...prev, {
-                id: Date.now(),
-                name: file.name,
-                size: (file.size / (1024 * 1024)).toFixed(2) + "MB",
-                date: new Date().toISOString().split('T')[0]
-            }]);
+            setFiles(prev => [
+                ...prev,
+                {
+                    id: Date.now(),
+                    name: file.name,
+                    size: (file.size / (1024 * 1024)).toFixed(2) + " MB",
+                    date: new Date().toISOString().split("T")[0],
+                },
+            ]);
 
             toast.success(`File "${file.name}" uploaded successfully!`);
         } catch (error) {
@@ -84,23 +82,19 @@ export default function PdfManagementLayout() {
     };
 
     const handleChange = (e: any) => {
-
-        console.log("File input changed");
         if (e.target.files && e.target.files[0]) {
-            console.log("File found:", e.target.files[0].name);
             handleFileUpload(e.target.files[0]);
         }
-
-        e.target.value = '';
+        e.target.value = "";
     };
 
     return (
         <DashboardLayout>
             <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" fontWeight={700} sx={{ color: 'var(--foreground)' }}>
+                <Typography variant="h4" fontWeight={700} sx={{ color: COLORS.FOREGROUND }}>
                     PDF Management
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'var(--text-secondary)' }}>
+                <Typography variant="body2" sx={{ color: COLORS.ACCENT }}>
                     Upload and manage your PDF documents here.
                 </Typography>
             </Box>
@@ -116,8 +110,8 @@ export default function PdfManagementLayout() {
                         onDrop={handleDrop}
                         sx={{
                             p: 6,
-                            border: `2px dashed ${dragActive ? 'var(--foreground)' : 'var(--border)'}`,
-                            bgcolor: dragActive ? 'rgba(255,255,255,0.05)' : 'var(--card-bg)',
+                            border: `2px dashed ${dragActive ? COLORS.FOREGROUND : COLORS.ACCENT}`,
+                            bgcolor: dragActive ? "rgba(255,255,255,0.05)" : COLORS.CARD,
                             borderRadius: 0,
                             textAlign: "center",
                             cursor: "pointer",
@@ -131,12 +125,12 @@ export default function PdfManagementLayout() {
                             accept=".pdf"
                             onChange={handleChange}
                         />
-                        <label htmlFor="file-upload" style={{ width: '100%', height: '100%', cursor: 'pointer' }}>
-                            <CloudUploadIcon sx={{ fontSize: 64, color: "var(--foreground)", mb: 2 }} />
-                            <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: "var(--foreground)" }}>
+                        <label htmlFor="file-upload" style={{ width: "100%", height: "100%", cursor: "pointer" }}>
+                            <CloudUploadIcon sx={{ fontSize: 64, color: COLORS.FOREGROUND, mb: 2 }} />
+                            <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: COLORS.FOREGROUND }}>
                                 Drag & Drop PDF here
                             </Typography>
-                            <Typography variant="body2" sx={{ color: "var(--foreground)", mb: 3 }}>
+                            <Typography variant="body2" sx={{ color: COLORS.FOREGROUND, mb: 3 }}>
                                 or click to browse files
                             </Typography>
                             <Button
@@ -144,9 +138,9 @@ export default function PdfManagementLayout() {
                                 component="span"
                                 sx={{
                                     borderRadius: 0,
-                                    bgcolor: 'var(--foreground)',
-                                    color: 'var(--background)',
-                                    '&:hover': { bgcolor: 'var(--text-secondary)' }
+                                    bgcolor: COLORS.FOREGROUND,
+                                    color: COLORS.BACKGROUND,
+                                    "&:hover": { bgcolor: COLORS.ACCENT },
                                 }}
                             >
                                 Browse Files
@@ -157,42 +151,71 @@ export default function PdfManagementLayout() {
 
                 {/* File List */}
                 <Grid size={{ xs: 12, md: 7 }}>
-                    <Paper elevation={0} sx={{ border: '1px solid var(--border)', borderRadius: 0, bgcolor: 'var(--card-bg)' }}>
-                        <Box sx={{ p: 2, borderBottom: '1px solid var(--border)' }}>
-                            <Typography variant="h6" fontWeight={600} sx={{ color: "var(--foreground)" }}>Uploaded Files ({files.length})</Typography>
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            border: `1px solid ${COLORS.ACCENT}`,
+                            borderRadius: 0,
+                            bgcolor: COLORS.CARD,
+                        }}
+                    >
+                        <Box sx={{ p: 2, borderBottom: `1px solid ${COLORS.ACCENT}` }}>
+                            <Typography variant="h6" fontWeight={600} sx={{ color: COLORS.FOREGROUND }}>
+                                Uploaded Files ({files.length})
+                            </Typography>
                         </Box>
+
                         <List sx={{ p: 0 }}>
                             {files.map((file, index) => (
                                 <Box key={file.id}>
                                     <ListItem sx={{ py: 2 }}>
                                         <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', color: 'var(--foreground)', borderRadius: 0 }}>
+                                            <Avatar
+                                                sx={{
+                                                    bgcolor: "rgba(255,255,255,0.1)",
+                                                    color: COLORS.FOREGROUND,
+                                                    borderRadius: 0,
+                                                }}
+                                            >
                                                 <PictureAsPdfIcon />
                                             </Avatar>
                                         </ListItemAvatar>
+
                                         <ListItemText
                                             primary={file.name}
-                                            secondary={<Typography variant="caption" sx={{ color: "rgba(255, 255, 255, 0.7)" }}>{file.size} • {file.date}</Typography>}
-                                            primaryTypographyProps={{ fontWeight: 500, color: 'var(--foreground)' }}
+                                            secondary={
+                                                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
+                                                    {file.size} • {file.date}
+                                                </Typography>
+                                            }
+                                            primaryTypographyProps={{ fontWeight: 500, color: COLORS.FOREGROUND }}
                                         />
-                                        <ListItem>
-                                            <IconButton edge="end" sx={{ color: 'var(--foreground)', mr: 1 }}>
-                                                <DownloadIcon />
-                                            </IconButton>
-                                            <IconButton edge="end" sx={{ color: 'var(--foreground)' }} onClick={() => {
+
+                                        <IconButton sx={{ color: COLORS.FOREGROUND, mr: 1 }}>
+                                            <DownloadIcon />
+                                        </IconButton>
+                                        <IconButton
+                                            sx={{ color: COLORS.FOREGROUND }}
+                                            onClick={() => {
                                                 setFiles(files.filter(f => f.id !== file.id));
                                                 toast.success("File deleted successfully!");
-                                            }}>
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </ListItem>
+                                            }}
+                                        >
+                                            <DeleteIcon />
+                                        </IconButton>
                                     </ListItem>
-                                    {index < files.length - 1 && <Divider sx={{ borderColor: 'var(--border)' }} />}
+
+                                    {index < files.length - 1 && (
+                                        <Divider sx={{ borderColor: COLORS.ACCENT }} />
+                                    )}
                                 </Box>
                             ))}
+
                             {files.length === 0 && (
-                                <Box sx={{ p: 4, textAlign: 'center' }}>
-                                    <Typography color="text.secondary">No files uploaded yet.</Typography>
+                                <Box sx={{ p: 4, textAlign: "center" }}>
+                                    <Typography sx={{ color: COLORS.ACCENT }}>
+                                        No files uploaded yet.
+                                    </Typography>
                                 </Box>
                             )}
                         </List>

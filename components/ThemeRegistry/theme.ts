@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
+import { COLORS } from "@/utils/enum";
 
-declare module '@mui/material/styles' {
+declare module "@mui/material/styles" {
     interface Theme {
         custom: {
             background: string;
@@ -29,41 +30,44 @@ declare module '@mui/material/styles' {
 
 const theme = createTheme({
     palette: {
-        mode: 'light',
+        mode: "light",
         primary: {
-            main: '#000000',
+            main: COLORS.BLACK,
         },
         secondary: {
-            main: '#ffffff',
+            main: COLORS.WHITE,
         },
         background: {
-            default: '#ffffff',
-            paper: '#ffffff',
+            default: COLORS.BACKGROUND,
+            paper: COLORS.CARD,
         },
         text: {
-            primary: '#171717',
+            primary: COLORS.FOREGROUND,
         },
     },
     typography: {
-        fontFamily: 'var(--font-primary), sans-serif',
-        h1: { fontFamily: 'var(--font-primary), sans-serif', fontWeight: 700 },
-        h2: { fontFamily: 'var(--font-primary), sans-serif', fontWeight: 600 },
-        h3: { fontFamily: 'var(--font-primary), sans-serif', fontWeight: 600 },
-        h4: { fontFamily: 'var(--font-primary), sans-serif', fontWeight: 600 },
-        h5: { fontFamily: 'var(--font-primary), sans-serif', fontWeight: 500 },
-        h6: { fontFamily: 'var(--font-primary), sans-serif', fontWeight: 500 },
-        body1: { fontFamily: 'var(--font-secondary), sans-serif' },
-        body2: { fontFamily: 'var(--font-secondary), sans-serif' },
-        button: { fontFamily: 'var(--font-primary), sans-serif', textTransform: 'none' },
+        fontFamily: "var(--font-primary), sans-serif",
+        h1: { fontFamily: "var(--font-primary), sans-serif", fontWeight: 700 },
+        h2: { fontFamily: "var(--font-primary), sans-serif", fontWeight: 600 },
+        h3: { fontFamily: "var(--font-primary), sans-serif", fontWeight: 600 },
+        h4: { fontFamily: "var(--font-primary), sans-serif", fontWeight: 600 },
+        h5: { fontFamily: "var(--font-primary), sans-serif", fontWeight: 500 },
+        h6: { fontFamily: "var(--font-primary), sans-serif", fontWeight: 500 },
+        body1: { fontFamily: "var(--font-secondary), sans-serif" },
+        body2: { fontFamily: "var(--font-secondary), sans-serif" },
+        button: {
+            fontFamily: "var(--font-primary), sans-serif",
+            textTransform: "none",
+        },
     },
     components: {
         MuiButton: {
             styleOverrides: {
                 root: {
                     borderRadius: 0,
-                    boxShadow: 'none',
-                    '&:hover': {
-                        boxShadow: 'none',
+                    boxShadow: "none",
+                    "&:hover": {
+                        boxShadow: "none",
                     },
                 },
             },
@@ -71,14 +75,14 @@ const theme = createTheme({
         MuiListItemButton: {
             styleOverrides: {
                 root: {
-                    '&.Mui-selected': {
-                        backgroundColor: 'var(--primary)',
-                        color: 'var(--secondary)',
-                        '&:hover': {
-                            backgroundColor: 'var(--accent)',
+                    "&.Mui-selected": {
+                        backgroundColor: COLORS.BLACK,
+                        color: COLORS.WHITE,
+                        "&:hover": {
+                            backgroundColor: COLORS.ACCENT,
                         },
-                        '& .MuiListItemIcon-root': {
-                            color: 'var(--secondary)',
+                        "& .MuiListItemIcon-root": {
+                            color: COLORS.WHITE,
                         },
                     },
                 },
@@ -87,26 +91,26 @@ const theme = createTheme({
         MuiListItemIcon: {
             styleOverrides: {
                 root: {
-                    color: 'var(--primary)',
+                    color: COLORS.BLACK,
                 },
             },
         },
         MuiPaper: {
             styleOverrides: {
                 root: {
-                    backgroundImage: 'none',
+                    backgroundImage: "none",
                 },
             },
         },
     },
     custom: {
-        background: 'var(--background)',
-        foreground: 'var(--foreground)',
-        primary: 'var(--primary)',
-        secondary: 'var(--secondary)',
-        accent: 'var(--accent)',
-        muted: 'var(--muted)',
-        border: 'var(--border)',
+        background: COLORS.BACKGROUND,
+        foreground: COLORS.FOREGROUND,
+        primary: COLORS.BLACK,
+        secondary: COLORS.WHITE,
+        accent: COLORS.ACCENT,
+        muted: COLORS.ACCENT,
+        border: COLORS.ACCENT,
     },
 });
 
