@@ -38,6 +38,30 @@ export const fetchShipDetails = createAsyncThunk(
     }
 );
 
+export const assignCrewToShip = createAsyncThunk(
+    "ship/assignCrewToShip",
+    async ({ shipId, crewIds }: { shipId: string | number, crewIds: (string | number)[] }, { rejectWithValue }) => {
+        try {
+            const response = await shipControllers.assignCrew(shipId, crewIds);
+            return response.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to assign crew members");
+        }
+    }
+);
+
+export const assignSuperintendentsToShip = createAsyncThunk(
+    "ship/assignSuperintendentsToShip",
+    async ({ shipId, superintendentIds }: { shipId: string | number, superintendentIds: (string | number)[] }, { rejectWithValue }) => {
+        try {
+            const response = await shipControllers.assignSuperintendents(shipId, superintendentIds);
+            return response.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to assign superintendents");
+        }
+    }
+);
+
 interface ShipState {
     ships: any[];
     selectedShip: any | null;

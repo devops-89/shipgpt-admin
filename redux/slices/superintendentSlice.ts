@@ -6,14 +6,25 @@ export const fetchSuperintendents = createAsyncThunk(
     "superintendent/fetchSuperintendents",
     async (_, { rejectWithValue }) => {
         try {
-            const response = await authControllers.getUsers({ user_role: "SUPERINTENDENT" });
-            return response.data.data.docs;
+            const [activeResponse, inactiveResponse] = await Promise.all([
+                authControllers.getUsers({ user_role: "SUPERINTENDENT", isActive: true, limit: 1000 }),
+                authControllers.getUsers({ user_role: "SUPERINTENDENT", isActive: false, limit: 1000 })
+            ]);
+
+            const activeSuperintendents = activeResponse.data.data.docs || [];
+            const inactiveSuperintendents = inactiveResponse.data.data.docs || [];
+
+            const allSuperintendents = [...activeSuperintendents, ...inactiveSuperintendents];
+            const uniqueSuperintendents = Array.from(new Map(allSuperintendents.map(item => [item._id || item.id, item])).values());
+
+            return uniqueSuperintendents.sort((a: any, b: any) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || "Failed to fetch superintendents");
         }
     }
 );
-
 export const createSuperintendent = createAsyncThunk(
     "superintendent/createSuperintendent",
     async (data: any, { rejectWithValue }) => {
@@ -25,7 +36,6 @@ export const createSuperintendent = createAsyncThunk(
         }
     }
 );
-
 interface SuperintendentState {
     superintendents: any[];
     loading: boolean;
@@ -72,9 +82,29 @@ const superintendentSlice = createSlice({
             .addCase(createSuperintendent.rejected, (state, action) => {
                 state.createLoading = false;
                 state.error = action.payload as string;
+            })
+            .addCase(updateSuperintendentStatus.fulfilled, (state, action) => {
+                const { id, status } = action.payload;
+                const index = state.superintendents.findIndex((s) => (s._id === id || s.id === id));
+                if (index !== -1) {
+                    state.superintendents[index].isActive = status;
+                    state.superintendents[index].status = status ? 'Active' : 'Inactive';
+                }
             });
     },
 });
+
+export const updateSuperintendentStatus = createAsyncThunk(
+    "superintendent/updateSuperintendentStatus",
+    async ({ id, status }: { id: string | number; status: boolean }, { rejectWithValue }) => {
+        try {
+            const response = await authControllers.updateUser(id, { isActive: status, role: "SUPERINTENDENT" });
+            return { id, status };
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to update superintendent status");
+        }
+    }
+);
 
 export const { clearError } = superintendentSlice.actions;
 export default superintendentSlice.reducer;

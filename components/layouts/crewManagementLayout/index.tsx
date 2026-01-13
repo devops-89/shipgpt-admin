@@ -1,25 +1,28 @@
 "use client";
 import { useState, useEffect } from "react";
-import { toast } from "react-toastify";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
-    Box,
-    Typography,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    IconButton,
-    Modal,
-    TextField,
-    Stack,
-    Chip,
-    Switch
+  Box,
+  Typography,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Modal,
+  TextField,
+  Stack,
+  Chip,
+  Switch,
+  TablePagination,
+  Snackbar,
+  Alert,
+  AlertColor,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
@@ -31,435 +34,728 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { fetchCrew, createCrew, clearError } from "@/redux/slices/crewSlice";
-
-interface CrewMember {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
-    status: string;
-}
+import {
+  fetchCrew,
+  createCrew,
+  clearError,
+  updateCrewStatus,
+} from "@/redux/slices/crewSlice";
 
 export default function CrewManagementLayout() {
-    const dispatch = useDispatch<AppDispatch>();
-    const { crew, loading, error, createLoading } = useSelector((state: RootState) => state.crew);
+  const dispatch = useDispatch<AppDispatch>();
+  const { crew, loading, error, createLoading } = useSelector(
+    (state: RootState) => state.crew
+  );
 
-    const [openAddModal, setOpenAddModal] = useState(false);
-    const [openViewModal, setOpenViewModal] = useState(false);
-    const [openConfirmModal, setOpenConfirmModal] = useState(false);
-    const [selectedCrew, setSelectedCrew] = useState<any>(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [userRole, setUserRole] = useState<string>("");
-    useEffect(() => {
-        const storedRole = localStorage.getItem("userRole");
-        if (storedRole) setUserRole(storedRole);
-    }, []);
-    useEffect(() => {
-        dispatch(fetchCrew());
-    }, [dispatch]);
+  const [openAddModal, setOpenAddModal] = useState(false);
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [openConfirmModal, setOpenConfirmModal] = useState(false);
+  const [selectedCrew, setSelectedCrew] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [userRole, setUserRole] = useState<string>("");
 
-    useEffect(() => {
-        if (error) {
-            toast.error(error);
-            dispatch(clearError());
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: AlertColor;
+  }>({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const handleCloseSnackbar = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string
+  ) => {
+    if (reason === "clickaway") return;
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
+  const showMessage = (message: string, severity: AlertColor = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("userRole");
+    if (storedRole) setUserRole(storedRole);
+  }, []);
+
+  useEffect(() => {
+    dispatch(fetchCrew());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      showMessage(error, "error");
+      dispatch(clearError());
+    }
+  }, [error, dispatch]);
+
+  const validationSchema = Yup.object({
+    firstName: Yup.string().required("First Name is required"),
+    lastName: Yup.string().required("Last Name is required"),
+    email: Yup.string()
+      .email("Invalid email address")
+      .required("Email is required"),
+    password: Yup.string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
+  });
+
+  const formik = useFormik({
+    initialValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+    },
+    validationSchema: validationSchema,
+    onSubmit: async (values, { setSubmitting }) => {
+      const resultAction = await dispatch(createCrew(values));
+      if (createCrew.fulfilled.match(resultAction)) {
+        const newCrewId =
+          resultAction.payload?.data?._id ||
+          resultAction.payload?._id ||
+          resultAction.payload?.data?.id ||
+          resultAction.payload?.id;
+        if (newCrewId) {
+          await dispatch(updateCrewStatus({ id: newCrewId, status: true }));
         }
-    }, [error, dispatch]);
-    const validationSchema = Yup.object({
-        firstName: Yup.string().required("First Name is required"),
-        lastName: Yup.string().required("Last Name is required"),
-        email: Yup.string().email("Invalid email address").required("Email is required"),
-        password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
-    });
 
-    const formik = useFormik({
-        initialValues: {
-            firstName: "",
-            lastName: "",
-            email: "",
-            password: "",
-        },
-        validationSchema: validationSchema,
-        onSubmit: async (values, { setSubmitting }) => {
-            const resultAction = await dispatch(createCrew(values));
-            if (createCrew.fulfilled.match(resultAction)) {
-                toast.success("Crew member created successfully!");
-                setOpenAddModal(false);
-                formik.resetForm();
-                dispatch(fetchCrew());
-            }
-            setSubmitting(false);
-        },
-    });
-
-    const handleOpenAdd = () => {
-        formik.resetForm();
-        setOpenAddModal(true);
-    };
-
-    const handleCloseAddModal = () => {
+        showMessage("Crew member created successfully!");
         setOpenAddModal(false);
         formik.resetForm();
-    };
+        dispatch(fetchCrew());
+      }
+      setSubmitting(false);
+    },
+  });
 
-    const handleOpenView = (member: any) => {
-        setSelectedCrew(member);
-        setIsEditing(false);
-        setOpenViewModal(true);
-    };
+  const handleOpenAdd = () => {
+    formik.resetForm();
+    setOpenAddModal(true);
+  };
 
-    const handleCloseView = () => {
+  const handleCloseAddModal = () => {
+    setOpenAddModal(false);
+    formik.resetForm();
+  };
+
+  const handleOpenView = (member: any) => {
+    setSelectedCrew(member);
+    setIsEditing(false);
+    setOpenViewModal(true);
+  };
+
+  const handleCloseView = () => {
+    setSelectedCrew(null);
+    setOpenViewModal(false);
+    setIsEditing(false);
+  };
+
+  const handleUpdateCrew = () => {
+    showMessage("Update functionality coming soon", "info");
+    setOpenViewModal(false);
+  };
+
+  const handleToggleStatusClick = (member: any) => {
+    setSelectedCrew(member);
+    setOpenConfirmModal(true);
+  };
+
+  const confirmStatusChange = async () => {
+    if (selectedCrew) {
+      const newStatus = !(
+        selectedCrew.status === "Active" || selectedCrew.isActive === true
+      );
+      const resultAction = await dispatch(
+        updateCrewStatus({
+          id: selectedCrew.id || selectedCrew._id,
+          status: newStatus,
+        })
+      );
+      if (updateCrewStatus.fulfilled.match(resultAction)) {
+        showMessage(
+          `Crew member ${newStatus ? "enabled" : "disabled"} successfully`
+        );
+        setOpenConfirmModal(false);
         setSelectedCrew(null);
-        setOpenViewModal(false);
-        setIsEditing(false);
-    };
+      }
+    }
+  };
 
-    
-    const handleUpdateCrew = () => {
-        toast.info("Update functionality coming soon");
-        setOpenViewModal(false);
-    };
+  const commonStyles = {
+    fontFamily: "var(--font-primary) !important",
+    color: COLORS.TEXT_PRIMARY,
+  };
 
-    const handleToggleStatusClick = (member: any) => {
-        setSelectedCrew(member);
-        setOpenConfirmModal(true);
-    };
+  const modalStyle = {
+    position: "absolute" as "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: { xs: "90%", sm: 500 },
+    bgcolor: COLORS.WHITE,
+    color: COLORS.TEXT_PRIMARY,
+    boxShadow: 24,
+    border: `1px solid ${COLORS.ACCENT}`,
+    borderRadius: "10px",
+    p: 4,
+    outline: "none",
+  };
 
-    const confirmStatusChange = () => {
-        if (selectedCrew) {
-           
-            toast.info("Status update needs API integration");
-            setOpenConfirmModal(false);
-            setSelectedCrew(null);
-        }
-    };
+  const textFieldStyle = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "10px",
+      color: COLORS.TEXT_PRIMARY,
+      backgroundColor: COLORS.WHITE,
+      fontFamily: "var(--font-primary) !important",
+      "& fieldset": { borderColor: COLORS.FOREGROUND },
+      "&:hover fieldset": { borderColor: COLORS.ACCENT },
+      "&.Mui-focused fieldset": { borderColor: COLORS.ACCENT },
+    },
+    "& .MuiInputLabel-root": {
+      color: COLORS.TEXT_SECONDARY,
+      fontFamily: "var(--font-primary) !important",
+    },
+    "& .MuiInputLabel-root.Mui-focused": { color: COLORS.ACCENT },
+    "& .MuiInputBase-input": {
+      fontFamily: "var(--font-primary) !important",
+      color: COLORS.TEXT_PRIMARY,
+    },
+    "& .MuiFormHelperText-root": {
+      fontFamily: "var(--font-primary) !important",
+    },
+  };
 
-    const commonStyles = {
-        fontFamily: 'var(--font-primary) !important',
-        color: 'var(--foreground)'
-    };
+  const confirmModalStyle = {
+    position: "absolute" as "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 400,
+    bgcolor: COLORS.WHITE,
+    color: COLORS.TEXT_PRIMARY,
+    boxShadow: 24,
+    p: 4,
+    borderRadius: "10px",
+    outline: "none",
+    border: `1px solid ${COLORS.ACCENT}`,
+    textAlign: "center",
+  };
 
-    const modalStyle = {
-        position: 'absolute' as 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: { xs: '90%', sm: 500 },
-        bgcolor: 'var(--card-bg)',
-        boxShadow: 24,
-        border: '1px solid var(--border)',
-        p: 4,
-        outline: 'none',
-        ...commonStyles
-    };
+  return (
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      <Box
+        sx={{
+          width: "20%",
+          height: "100%",
+          overflowY: "auto",
+          borderRight: `1px solid ${COLORS.FOREGROUND}`,
+        }}
+      >
+        <Sidebar />
+      </Box>
 
-    const textFieldStyle = {
-        '& .MuiOutlinedInput-root': {
-            borderRadius: 0,
-            color: COLORS.WHITE,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            fontFamily: 'var(--font-primary) !important',
-            '& fieldset': { borderColor: COLORS.WHITE },
-            '&:hover fieldset': { borderColor: COLORS.WHITE },
-            '&.Mui-focused fieldset': { borderColor: COLORS.WHITE },
-        },
-        '& .MuiInputLabel-root': { color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important' },
-        '& .MuiInputLabel-root.Mui-focused': { color: COLORS.WHITE },
-        '& .MuiInputBase-input': { fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE },
-        '& .MuiFormHelperText-root': { fontFamily: 'var(--font-primary) !important' }
-    };
+      <Box
+        sx={{
+          width: "80%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Navbar />
+        <Box
+          sx={{
+            p: 3,
+            flexGrow: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+            bgcolor: COLORS.FOREGROUND,
+          }}
+        >
+          <Box
+            sx={{
+              mb: 4,
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "space-between",
+              alignItems: { xs: "start", sm: "center" },
+              gap: 2,
+            }}
+          >
+            <Typography variant="h4" fontWeight={700} sx={commonStyles}>
+              Crew Management
+            </Typography>
+            {userRole === "ADMIN" && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenAdd}
+                sx={{
+                  width: { xs: "100%", sm: "auto" },
+                  bgcolor: COLORS.ACCENT,
+                  color: COLORS.WHITE,
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  px: 3,
+                  py: 1.5,
+                  fontFamily: "var(--font-primary) !important",
+                  "&:hover": {
+                    bgcolor: "#0052E0",
+                  },
+                }}
+              >
+                Add Crew
+              </Button>
+            )}
+          </Box>
 
-    const confirmModalStyle = {
-        position: 'absolute' as 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: 400,
-        bgcolor: 'var(--card-bg)',
-        color: 'var(--foreground)',
-        boxShadow: 24,
-        p: 4,
-        borderRadius: 2,
-        outline: 'none',
-        border: '1px solid var(--border)',
-        textAlign: 'center'
-    };
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{
+              border: `1px solid ${COLORS.FOREGROUND}`,
+              borderRadius: "10px",
+              bgcolor: COLORS.WHITE,
+              overflow: "hidden",
+            }}
+          >
+            <Table sx={{ minWidth: 650 }} aria-label="crew table">
+              <TableHead sx={{ bgcolor: COLORS.WHITE }}>
+                <TableRow>
+                  <TableCell
+                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                  >
+                    Name
+                  </TableCell>
+                  <TableCell
+                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                  >
+                    Email
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                  >
+                    Role
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                  >
+                    Status
+                  </TableCell>
+                  <TableCell
+                    align="center"
+                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                  >
+                    Actions
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      align="center"
+                      sx={{ ...commonStyles, py: 4 }}
+                    >
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  (rowsPerPage > 0
+                    ? crew?.slice(
+                      page * rowsPerPage,
+                      page * rowsPerPage + rowsPerPage
+                    )
+                    : crew
+                  )?.map((row) => (
+                    <TableRow
+                      key={row.id || row._id || Math.random()}
+                      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                    >
+                      <TableCell
+                        component="th"
+                        scope="row"
+                        sx={{ fontWeight: 500, color: COLORS.TEXT_PRIMARY }}
+                      >
+                        {row.firstName} {row.lastName}
+                      </TableCell>
+                      <TableCell sx={{ color: COLORS.TEXT_PRIMARY }}>
+                        {row.email}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={row.role || "Crew"}
+                          size="small"
+                          sx={{
+                            borderRadius: "10px",
+                            bgcolor: COLORS.ACCENT,
+                            color: COLORS.WHITE,
+                            fontWeight: 500,
+                            fontFamily: "var(--font-primary) !important",
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Switch
+                          checked={
+                            row.status === "Active" || row.isActive === true
+                          }
+                          onChange={() => handleToggleStatusClick(row)}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          onClick={() => handleOpenView(row)}
+                          sx={{ color: COLORS.ACCENT }}
+                        >
+                          <RemoveRedEyeIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={crew?.length || 0}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(event, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              sx={{
+                color: COLORS.TEXT_PRIMARY,
+                "& .MuiTablePagination-selectIcon": {
+                  color: COLORS.TEXT_PRIMARY,
+                },
+                "& .MuiTablePagination-actions": {
+                  color: COLORS.TEXT_PRIMARY,
+                },
+              }}
+            />
+          </TableContainer>
 
-    return (
-        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-            {/* Sidebar – Fixed */}
-            <Box sx={{ width: "20%", height: "100%", overflowY: "auto", borderRight: "1px solid var(--border)" }}>
-                <Sidebar />
+          <Modal open={openAddModal} onClose={handleCloseAddModal}>
+            <Box sx={modalStyle}>
+              <Typography
+                variant="h6"
+                component="h2"
+                mb={3}
+                fontWeight={600}
+                sx={{
+                  fontFamily: "var(--font-primary) !important",
+                  color: COLORS.TEXT_PRIMARY,
+                }}
+              >
+                Add New Crew Member
+              </Typography>
+              <form onSubmit={formik.handleSubmit}>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      label="First Name"
+                      name="firstName"
+                      fullWidth
+                      autoComplete="off"
+                      variant="outlined"
+                      sx={textFieldStyle}
+                      value={formik.values.firstName}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={
+                        formik.touched.firstName &&
+                        Boolean(formik.errors.firstName)
+                      }
+                      helperText={
+                        formik.touched.firstName && formik.errors.firstName
+                      }
+                    />
+                    <TextField
+                      label="Last Name"
+                      name="lastName"
+                      fullWidth
+                      autoComplete="off"
+                      variant="outlined"
+                      sx={textFieldStyle}
+                      value={formik.values.lastName}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      error={
+                        formik.touched.lastName &&
+                        Boolean(formik.errors.lastName)
+                      }
+                      helperText={
+                        formik.touched.lastName && formik.errors.lastName
+                      }
+                    />
+                  </Stack>
+                  <TextField
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    fullWidth
+                    autoComplete="off"
+                    variant="outlined"
+                    sx={textFieldStyle}
+                    value={formik.values.email}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={formik.touched.email && Boolean(formik.errors.email)}
+                    helperText={formik.touched.email && formik.errors.email}
+                  />
+                  <TextField
+                    label="Password"
+                    name="password"
+                    type="password"
+                    fullWidth
+                    autoComplete="new-password"
+                    variant="outlined"
+                    sx={textFieldStyle}
+                    value={formik.values.password}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    error={
+                      formik.touched.password && Boolean(formik.errors.password)
+                    }
+                    helperText={
+                      formik.touched.password && formik.errors.password
+                    }
+                  />
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    size="large"
+                    disabled={createLoading || formik.isSubmitting}
+                    sx={{
+                      mt: 2,
+                      bgcolor: COLORS.GREEN,
+                      color: COLORS.WHITE,
+                      borderRadius: "10px",
+                      fontFamily: "var(--font-primary) !important",
+                      "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                    }}
+                  >
+                    {createLoading ? "Adding..." : "Add Crew"}
+                  </Button>
+                </Stack>
+              </form>
             </Box>
+          </Modal>
 
-            {/* Main Content */}
-            <Box sx={{ width: "80%", height: "100%", display: "flex", flexDirection: "column" }}>
-                <Navbar />
-                <Box sx={{ p: 3, flexGrow: 1, overflowY: "auto", overflowX: "hidden" }}>
-                    <Box sx={{ mb: 4, display: "flex", flexDirection: { xs: 'column', sm: 'row' }, justifyContent: "space-between", alignItems: { xs: 'start', sm: 'center' }, gap: 2 }}>
-                        <Typography variant="h4" fontWeight={700} sx={commonStyles}>
-                            Crew Management
-                        </Typography>
-                        {(userRole === 'ADMIN') && (
-                            <Button
-                                variant="contained"
-                                startIcon={<AddIcon />}
-                                onClick={handleOpenAdd}
-                                sx={{
-                                    width: { xs: '100%', sm: 'auto' },
-                                    bgcolor: "var(--card-bg)",
-                                    color: "var(--foreground)",
-                                    border: "1px solid var(--border)",
-                                    borderRadius: 0,
-                                    textTransform: "none",
-                                    px: 3,
-                                    py: 1.5,
-                                    fontFamily: 'var(--font-primary) !important',
-                                    "&:hover": {
-                                        bgcolor: "rgba(255,255,255,0.05)",
-                                        border: "1px solid var(--foreground)",
-                                    },
-                                }}
-                            >
-                                Add Crew
-                            </Button>
-                        )}
-                    </Box>
-
-                    {/* Crew Table */}
-                    <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid var(--border)", borderRadius: 0, bgcolor: "var(--card-bg)" }}>
-                        <Table sx={{ minWidth: 650 }} aria-label="crew table">
-                            <TableHead sx={{ bgcolor: "var(--card-bg)" }}>
-                                <TableRow>
-                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Name</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Email</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Role</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, ...commonStyles }}>Status</TableCell>
-                                    <TableCell sx={{ fontWeight: 600, textAlign: 'right', ...commonStyles }}>Actions</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} align="center" sx={{ ...commonStyles, py: 4 }}>Loading...</TableCell>
-                                    </TableRow>
-                                ) : (
-                                    crew.map((row) => (
-                                        <TableRow key={row.id || row._id || Math.random()} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                                            <TableCell component="th" scope="row" sx={{ fontWeight: 500, ...commonStyles }}>
-                                                {row.firstName} {row.lastName}
-                                            </TableCell>
-                                            <TableCell sx={commonStyles}>{row.email}</TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={row.role || "Crew"}
-                                                    size="small"
-                                                    sx={{
-                                                        borderRadius: 0,
-                                                        bgcolor: 'rgba(255,255,255,0.05)',
-                                                        color: "var(--foreground)",
-                                                        fontWeight: 500,
-                                                        fontFamily: 'var(--font-primary) !important'
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Switch
-                                                    checked={row.status === 'Active' || row.isActive === true}
-                                                    onChange={() => handleToggleStatusClick(row)}
-                                                    color="success"
-                                                    sx={{
-                                                        '& .MuiSwitch-track': { bgcolor: 'var(--text-secondary)' }
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell align="right">
-                                                <IconButton onClick={() => handleOpenView(row)} sx={{ color: "var(--foreground)" }}>
-                                                    <RemoveRedEyeIcon />
-                                                </IconButton>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-
-                    {/* Add Modal */}
-                    <Modal open={openAddModal} onClose={handleCloseAddModal}>
-                        <Box sx={modalStyle}>
-                            <Typography variant="h6" component="h2" mb={3} fontWeight={600} sx={{ fontFamily: 'var(--font-primary) !important', color: COLORS.WHITE }}>
-                                Add New Crew Member
-                            </Typography>
-                            <form onSubmit={formik.handleSubmit}>
-                                <Stack spacing={2}>
-                                    <Stack direction="row" spacing={2}>
-                                        <TextField
-                                            label="First Name"
-                                            name="firstName"
-                                            fullWidth
-                                            autoComplete="off"
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            value={formik.values.firstName}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            error={formik.touched.firstName && Boolean(formik.errors.firstName)}
-                                            helperText={formik.touched.firstName && formik.errors.firstName}
-                                        />
-                                        <TextField
-                                            label="Last Name"
-                                            name="lastName"
-                                            fullWidth
-                                            autoComplete="off"
-                                            variant="outlined"
-                                            sx={textFieldStyle}
-                                            value={formik.values.lastName}
-                                            onChange={formik.handleChange}
-                                            onBlur={formik.handleBlur}
-                                            error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-                                            helperText={formik.touched.lastName && formik.errors.lastName}
-                                        />
-                                    </Stack>
-                                    <TextField
-                                        label="Email Address"
-                                        name="email"
-                                        type="email"
-                                        fullWidth
-                                        autoComplete="off"
-                                        variant="outlined"
-                                        sx={textFieldStyle}
-                                        value={formik.values.email}
-                                        onChange={formik.handleChange}
-                                        onBlur={formik.handleBlur}
-                                        error={formik.touched.email && Boolean(formik.errors.email)}
-                                        helperText={formik.touched.email && formik.errors.email}
-                                    />
-                                    <TextField
-                                        label="Password"
-                                        name="password"
-                                        type="password"
-                                        fullWidth
-                                        autoComplete="new-password"
-                                        variant="outlined"
-                                        sx={textFieldStyle}
-                                        value={formik.values.password}
-                                        onChange={formik.handleChange}
-                                        onBlur={formik.handleBlur}
-                                        error={formik.touched.password && Boolean(formik.errors.password)}
-                                        helperText={formik.touched.password && formik.errors.password}
-                                    />
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        fullWidth
-                                        size="large"
-                                        disabled={createLoading || formik.isSubmitting}
-                                        sx={{
-                                            mt: 2,
-                                            bgcolor: COLORS.GREEN,
-                                            color: COLORS.WHITE,
-                                            borderRadius: 0,
-                                            fontFamily: 'var(--font-primary) !important',
-                                            "&:hover": { bgcolor: COLORS.GREEN_DARK },
-                                        }}
-                                    >
-                                        {createLoading ? "Adding..." : "Add Crew"}
-                                    </Button>
-                                </Stack>
-                            </form>
-                        </Box>
-                    </Modal>
-
-                    {/* View/Edit Modal (Basic) */}
-                    <Modal open={openViewModal} onClose={handleCloseView}>
-                        <Box sx={modalStyle}>
-                            {/* Simplified View/Edit - reusing existing structure manually since focus is on Add API */}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                                <Typography variant="h6" fontWeight={600} sx={commonStyles}>
-                                    {isEditing ? "Edit Crew Details" : "Crew Details"}
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    {!isEditing && (
-                                        <IconButton onClick={() => setIsEditing(true)} sx={{ color: "var(--foreground)", mr: 1 }}>
-                                            <EditIcon />
-                                        </IconButton>
-                                    )}
-                                    <IconButton onClick={handleCloseView} sx={{ color: "var(--text-secondary)" }}>
-                                        <CloseIcon />
-                                    </IconButton>
-                                </Box>
-                            </Box>
-                            <Stack spacing={2}>
-                                {isEditing ? (
-                                    <Box>
-                                        <Typography sx={{ color: 'var(--text-secondary)' }}>Edit functionality pending implementation of specific API.</Typography>
-                                    </Box>
-                                ) : (
-                                    <>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Name</Typography>
-                                            <Typography variant="body1" fontWeight={500} sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedCrew?.firstName} {selectedCrew?.lastName}</Typography>
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Email</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedCrew?.email}</Typography>
-                                        </Box>
-                                        <Box>
-                                            <Typography variant="caption" sx={{ color: COLORS.WHITE, opacity: 0.7, fontFamily: 'var(--font-primary) !important' }}>Role</Typography>
-                                            <Typography variant="body1" sx={{ color: COLORS.WHITE, fontFamily: 'var(--font-primary) !important', fontSize: '1.1rem' }}>{selectedCrew?.role || "Crew"}</Typography>
-                                        </Box>
-                                    </>
-                                )}
-                            </Stack>
-                        </Box>
-                    </Modal>
-
-                    {/* Confirmation Pop-up */}
-                    <Modal open={openConfirmModal} onClose={() => setOpenConfirmModal(false)}>
-                        <Box sx={confirmModalStyle}>
-                            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: "var(--foreground)", fontFamily: 'var(--font-primary) !important' }}>
-                                {selectedCrew?.status === "Active" ? "Disable Crew Member" : "Enable Crew Member"}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mb: 3, color: "var(--text-secondary)", fontFamily: 'var(--font-primary) !important' }}>
-                                Are you sure you want to {selectedCrew?.status === "Active" ? "disable" : "enable"} this crew member&#39;s account?
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => setOpenConfirmModal(false)}
-                                    sx={{
-                                        borderRadius: 0,
-                                        color: 'var(--foreground)',
-                                        borderColor: 'var(--foreground)',
-                                        minWidth: 100,
-                                        fontFamily: 'var(--font-primary) !important',
-                                        "&:hover": { borderColor: 'var(--foreground)', bgcolor: 'rgba(255, 255, 255, 0.05)' }
-                                    }}
-                                >
-                                    NO
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    onClick={confirmStatusChange}
-                                    sx={{
-                                        borderRadius: 0,
-                                        bgcolor: 'var(--foreground)',
-                                        color: 'var(--background)',
-                                        minWidth: 100,
-                                        fontFamily: 'var(--font-primary) !important',
-                                        "&:hover": { bgcolor: 'rgba(255, 255, 255, 0.9)' }
-                                    }}
-                                >
-                                    YES
-                                </Button>
-                            </Box>
-                        </Box>
-                    </Modal>
+          <Modal open={openViewModal} onClose={handleCloseView}>
+            <Box sx={modalStyle}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 3,
+                }}
+              >
+                <Typography variant="h6" fontWeight={600} sx={commonStyles}>
+                  {isEditing ? "Edit Crew Details" : "Crew Details"}
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  {!isEditing && (
+                    <IconButton
+                      onClick={() => setIsEditing(true)}
+                      sx={{ color: COLORS.TEXT_PRIMARY, mr: 1 }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  )}
+                  <IconButton
+                    onClick={handleCloseView}
+                    sx={{ color: "var(--text-secondary)" }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
                 </Box>
+              </Box>
+              <Stack spacing={2}>
+                {isEditing ? (
+                  <Box>
+                    <Typography sx={{ color: "var(--text-secondary)" }}>
+                      Edit functionality pending implementation of specific API.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
+                        Name
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        fontWeight={500}
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                          fontSize: "1.1rem",
+                        }}
+                      >
+                        {selectedCrew?.firstName} {selectedCrew?.lastName}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
+                        Email
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                          fontSize: "1.1rem",
+                        }}
+                      >
+                        {selectedCrew?.email}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
+                        Role
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                          fontSize: "1.1rem",
+                        }}
+                      >
+                        {selectedCrew?.role || "Crew"}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+              </Stack>
             </Box>
+          </Modal>
+
+          <Modal
+            open={openConfirmModal}
+            onClose={() => setOpenConfirmModal(false)}
+          >
+            <Box sx={confirmModalStyle}>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                gutterBottom
+                sx={{
+                  color: COLORS.TEXT_PRIMARY,
+                  fontFamily: "var(--font-primary) !important",
+                }}
+              >
+                {(selectedCrew?.status === "Active" ||
+                  selectedCrew?.isActive === true)
+                  ? "Disable Crew Member"
+                  : "Enable Crew Member"}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  mb: 3,
+                  color: "var(--text-secondary)",
+                  fontFamily: "var(--font-primary) !important",
+                }}
+              >
+                Are you sure you want to{" "}
+                {(selectedCrew?.status === "Active" ||
+                  selectedCrew?.isActive === true)
+                  ? "disable"
+                  : "enable"}{" "}
+                this crew member&#39;s account?
+              </Typography>
+
+              <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+                <Button
+                  variant="outlined"
+                  onClick={() => setOpenConfirmModal(false)}
+                  sx={{
+                    borderRadius: "10px",
+                    color: COLORS.ACCENT,
+                    borderColor: COLORS.ACCENT,
+                    minWidth: 100,
+                    fontFamily: "var(--font-primary) !important",
+                    "&:hover": {
+                      borderColor: COLORS.ACCENT,
+                      bgcolor: "rgba(22, 93, 255, 0.05)",
+                    },
+                  }}
+                >
+                  NO
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={confirmStatusChange}
+                  sx={{
+                    borderRadius: "10px",
+                    bgcolor: COLORS.ACCENT,
+                    color: COLORS.WHITE,
+                    minWidth: 100,
+                    fontFamily: "var(--font-primary) !important",
+                    "&:hover": { bgcolor: "#0052E0" },
+                  }}
+                >
+                  YES
+                </Button>
+              </Box>
+            </Box>
+          </Modal>
         </Box>
-    );
+      </Box>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{
+            width: "100%",
+            fontFamily: "var(--font-primary)",
+            fontWeight: 600,
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
 }

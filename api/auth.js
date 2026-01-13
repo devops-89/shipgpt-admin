@@ -1,5 +1,5 @@
 
-import { publicApi, securedApi } from "./config";
+import { publicApi, securedApi, shippublicApi } from "./config";
 export const authControllers = {
   login: async (data) => {
     try {
@@ -52,6 +52,22 @@ export const authControllers = {
   updateUser: async (id, data) => {
     try {
       let result = await securedApi.patch(`/users/${id}`, data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  changePassword: async (data) => {
+    try {
+      let result = await securedApi.post("/change-password", data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  forgotPassword: async (data) => {
+    try {
+      let result = await publicApi.post("/forgot-password", data);
       return result;
     } catch (error) {
       throw error;

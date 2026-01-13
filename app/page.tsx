@@ -11,6 +11,10 @@ import {
   TextField,
   Typography,
   Backdrop,
+  Modal,
+  Stack,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -20,10 +24,29 @@ import { useFormik } from "formik";
 import { loginValidationSchema } from "@/utils/validationSchema";
 import { useRouter } from "next/navigation";
 import CircularProgress from '@mui/material/CircularProgress';
+import { useDispatch } from "react-redux";
+import { AppDispatch } from "@/redux/store";
+import { forgotPassword } from "@/redux/slices/userSlice";
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [openForgotModal, setOpenForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info" as "success" | "info" | "warning" | "error",
+  });
+
+  const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
   const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
   const formik = useFormik({
     initialValues: {
       email: "",
@@ -43,24 +66,38 @@ export default function LoginPage() {
           localStorage.setItem("accessToken", token);
           const user = response.data?.data?.user || response.data?.data;
           const role = user?.role || user?.user_role || (user?.isAdmin ? 'ADMIN' : '') || (user?.isSuperAdmin ? 'SUPER_ADMIN' : '');
-
           if (role) {
             console.log("Saving User Role:", role);
             localStorage.setItem("userRole", role);
-          } else {
-            console.warn("User role not found in login response");
           }
-
-          router.push("/admin-management");
+          if (user?.email) {
+            localStorage.setItem("userEmail", user.email);
+          }
+          setSnackbar({
+            open: true,
+            message: "Login Successfully!",
+            severity: "success",
+          });
+          setTimeout(() => {
+            router.push("/admin-management");
+          }, 1500);
         } else {
           console.warn("Available keys in response:", Object.keys(response.data || {}));
           console.error("Access Token NOT found. Response was:", response.data);
-          alert("Login succeeded but token missing. check console for 'LOGIN RESPONSE DATA'");
+          setSnackbar({
+            open: true,
+            message: "Login succeeded but token missing. Please try again or contact support.",
+            severity: "error",
+          });
           setLoading(false);
         }
       } catch (error) {
         console.error("Login failed", error);
-        alert("Login failed. Please check your credentials.");
+        setSnackbar({
+          open: true,
+          message: "Login failed. Please check your credentials.",
+          severity: "error",
+        });
         setLoading(false);
       }
     },
@@ -91,7 +128,6 @@ export default function LoginPage() {
           color: COLORS.WHITE,
           borderRadius: 4,
           boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
-          border: `1px solid ${COLORS.ACCENT}`
         }}
       >
         <CardContent sx={{ p: 4 }}>
@@ -123,7 +159,7 @@ export default function LoginPage() {
               sx={{
                 "& .MuiOutlinedInput-root": {
                   color: COLORS.
-                WHITE,
+                    WHITE,
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
                   "& fieldset": {
                     borderColor: "rgba(255, 255, 255, 0.3)",
@@ -145,12 +181,11 @@ export default function LoginPage() {
                 "& input": {
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
                   backgroundColor: "transparent !important",
-                  
                   transition: "background-color 5000s ease-in-out 0s !important",
                   "&:-webkit-autofill": {
                     transition: "background-color 5000s ease-in-out 0s !important",
                     WebkitTextFillColor: `${COLORS.WHITE} !important`,
-                    
+
                     WebkitBoxShadow: "0 0 0 1000px transparent inset !important",
                     backgroundColor: "transparent !important",
                     backgroundClip: "text !important",
@@ -231,13 +266,17 @@ export default function LoginPage() {
             <Box textAlign="right" mt={1}>
               <Typography
                 variant="body2"
+                onClick={() => {
+                  setForgotEmail(formik.values.email);
+                  setOpenForgotModal(true);
+                }}
                 sx={{
                   fontFamily: `${scienceGothic.style.fontFamily} !important`,
                   fontWeight: 600,
                   cursor: "pointer",
                   color: COLORS.WHITE,
                   opacity: 0.8,
-                  "&:hover": { opacity: 1 }
+                  "&:hover": { opacity: 1, textDecoration: 'underline' }
                 }}
               >
                 Forgot password?
@@ -260,7 +299,7 @@ export default function LoginPage() {
                 },
                 fontFamily: `${scienceGothic.style.fontFamily} !important`,
               }}
-            > 
+            >
               Login
             </Button>
             <Backdrop
@@ -273,6 +312,186 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      <Modal
+        open={openForgotModal}
+        onClose={() => !forgotLoading && setOpenForgotModal(false)}
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Card
+          sx={{
+            width: 400,
+            backdropFilter: "blur(12px)",
+            background: "rgba(30, 30, 30, 0.85)",
+            color: COLORS.WHITE,
+            borderRadius: 4,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.6)",
+            border: `1px solid rgba(255, 255, 255, 0.1)`,
+            p: 3,
+            outline: 'none'
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontFamily: `${scienceGothic.style.fontFamily} !important`,
+              fontWeight: 600,
+              mb: 1,
+              textAlign: 'center'
+            }}
+          >
+            Forgot Password?
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: `${scienceGothic.style.fontFamily} !important`,
+              mb: 3,
+              textAlign: 'center',
+              opacity: 0.7
+            }}
+          >
+            Enter your email address and we'll send you a link to reset your password.
+          </Typography>
+
+          <Stack spacing={3}>
+            <TextField
+              fullWidth
+              label="Email Address"
+              placeholder="Enter your registered email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              disabled={forgotLoading}
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  color: COLORS.WHITE,
+                  height: '56px',
+                  borderRadius: '12px',
+                  fontFamily: `${scienceGothic.style.fontFamily} !important`,
+                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.2)" },
+                  "&:hover fieldset": { borderColor: "rgba(255, 255, 255, 0.5)" },
+                  "&.Mui-focused fieldset": { borderColor: COLORS.WHITE },
+                },
+                "& .MuiInputLabel-root": {
+                  color: "rgba(255, 255, 255, 0.7)",
+                  fontFamily: `${scienceGothic.style.fontFamily} !important`,
+                  "&.Mui-focused": { color: COLORS.WHITE },
+                },
+                "& input": {
+                  padding: '16.5px 14px',
+                }
+              }}
+            />
+
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={async () => {
+                if (!forgotEmail) {
+                  setSnackbar({
+                    open: true,
+                    message: "Please enter your email",
+                    severity: "error",
+                  });
+                  return;
+                }
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(forgotEmail)) {
+                  setSnackbar({
+                    open: true,
+                    message: "Please enter a valid email address",
+                    severity: "error",
+                  });
+                  return;
+                }
+                setForgotLoading(true);
+                try {
+                  const res = await dispatch(forgotPassword({ email: forgotEmail }));
+                  if (forgotPassword.fulfilled.match(res)) {
+                    setSnackbar({
+                      open: true,
+                      message: (res.payload as any)?.message || "Password reset link sent to your email!",
+                      severity: "success",
+                    });
+                    setOpenForgotModal(false);
+                    setForgotEmail("");
+                  } else {
+                    const errorMsg = res.payload as string || "Failed to send reset link";
+                    setSnackbar({
+                      open: true,
+                      message: errorMsg,
+                      severity: "error",
+                    });
+                  }
+                } catch (err) {
+                  console.error("Forgot Password Error Block:", err);
+                  setSnackbar({
+                    open: true,
+                    message: "An unexpected error occurred",
+                    severity: "error",
+                  });
+                } finally {
+                  setForgotLoading(false);
+                }
+              }}
+              disabled={forgotLoading}
+              sx={{
+                py: 1.5,
+                borderRadius: '12px',
+                background: COLORS.WHITE,
+                color: COLORS.BLACK,
+                fontWeight: 700,
+                fontSize: '1rem',
+                textTransform: 'none',
+                "&:hover": { background: "rgba(255,255,255,0.9)", transform: 'scale(1.02)' },
+                transition: 'all 0.2s ease',
+                fontFamily: `${scienceGothic.style.fontFamily} !important`,
+              }}
+            >
+              {forgotLoading ? (
+                <CircularProgress size={24} sx={{ color: COLORS.BLACK }} />
+              ) : (
+                "Send Reset Link"
+              )}
+            </Button>
+
+            <Button
+              fullWidth
+              onClick={() => setOpenForgotModal(false)}
+              disabled={forgotLoading}
+              sx={{
+                color: "rgba(255, 255, 255, 0.6)",
+                textTransform: 'none',
+                fontSize: '0.9rem',
+                fontFamily: `${scienceGothic.style.fontFamily} !important`,
+                "&:hover": { color: COLORS.WHITE, background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }
+              }}
+            >
+              Return to Login
+            </Button>
+          </Stack>
+        </Card>
+      </Modal>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{
+            width: "100%",
+            fontFamily: scienceGothic.style.fontFamily,
+            fontWeight: 500,
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

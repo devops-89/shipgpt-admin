@@ -60,6 +60,26 @@ export const shipControllers = {
         } catch (error) {
             throw error;
         }
+    },
+    assignCrew: async (shipId, crewIds) => {
+        console.log(`Trace: assigning crew to ship ${shipId}`);
+        try {
+            let result = await shipsecuredApi.post(`/ships/${shipId}/assign-crew`, { crewIds });
+            console.log("assign crew raw:", result.data);
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    },
+    assignSuperintendents: async (shipId, superintendentIds) => {
+        console.log(`Trace: assigning superintendents to ship ${shipId}`);
+        try {
+            let result = await shipsecuredApi.post(`/ships/${shipId}/assign-superintendents`, { superintendentIds });
+            console.log("assign superintendents raw:", result.data);
+            return result;
+        } catch (error) {
+            throw error;
+        }
     }
 };
 
