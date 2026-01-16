@@ -34,6 +34,7 @@ import {
   Checkbox,
   Avatar,
   InputAdornment,
+  TablePagination,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
@@ -154,6 +155,8 @@ export default function ShipManagementLayout() {
   const [crewSearch, setCrewSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userRole, setUserRole] = useState<string>("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
@@ -284,6 +287,7 @@ export default function ShipManagementLayout() {
       }));
 
       e.target.value = "";
+      showMessage(`Selected ${validFiles.length} PDF(s). You can upload more if needed.`);
     }
   };
 
@@ -476,7 +480,7 @@ export default function ShipManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: { xs: "90%", sm: 600 },
+    width: { xs: "95%", sm: 550 },
     maxHeight: "90vh",
     overflowY: "auto",
     bgcolor: COLORS.WHITE,
@@ -485,7 +489,7 @@ export default function ShipManagementLayout() {
     boxShadow: 24,
     border: `1px solid ${COLORS.ACCENT}`,
     borderRadius: "10px",
-    p: 4,
+    p: 3,
     outline: "none",
   };
 
@@ -648,7 +652,13 @@ export default function ShipManagementLayout() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayShips.map((row: any) => (
+                  (rowsPerPage > 0
+                    ? displayShips.slice(
+                      page * rowsPerPage,
+                      page * rowsPerPage + rowsPerPage
+                    )
+                    : displayShips
+                  ).map((row: any) => (
                     <TableRow key={row.id || row._id || Math.random()}>
                       <TableCell sx={{ color: COLORS.TEXT_PRIMARY }}>
                         {row.name}
@@ -675,6 +685,31 @@ export default function ShipManagementLayout() {
                 )}
               </TableBody>
             </Table>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={displayShips.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(event, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(event) => {
+                setRowsPerPage(parseInt(event.target.value, 10));
+                setPage(0);
+              }}
+              sx={{
+                color: COLORS.TEXT_PRIMARY,
+                "& .MuiTablePagination-selectIcon": {
+                  color: COLORS.TEXT_PRIMARY,
+                },
+                "& .MuiTablePagination-actions": {
+                  color: COLORS.TEXT_PRIMARY,
+                },
+                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  fontFamily: "var(--font-primary) !important",
+                },
+              }}
+            />
           </TableContainer>
 
           <Modal
@@ -755,177 +790,96 @@ export default function ShipManagementLayout() {
                 </Box>
               </Box>
 
-              <Stack spacing={3}>
-                <Stack spacing={2}>
-                  {!openAddModal && !isEditing ? (
-                    <>
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Ship Name
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          fontWeight={500}
-                          sx={{
-                            color: COLORS.TEXT_PRIMARY,
-                            fontFamily: "var(--font-primary) !important",
-                            fontSize: "1.1rem",
-                          }}
-                        >
-                          {name}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          IMO Number
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            color: COLORS.TEXT_PRIMARY,
-                            fontFamily: "var(--font-primary) !important",
-                            fontSize: "1.1rem",
-                          }}
-                        >
-                          {imo}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Admin Name
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            color: COLORS.TEXT_PRIMARY,
-                            fontFamily: "var(--font-primary) !important",
-                            fontSize: "1.1rem",
-                          }}
-                        >
-                          {adminName}
-                        </Typography>
-                      </Box>
+              <Stack spacing={2}>
+                {!openAddModal && !isEditing ? (
+                  <>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                        Ship Name
+                      </Typography>
+                      <Typography variant="body1" fontWeight={500} sx={{ color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important", fontSize: "1.1rem" }}>
+                        {name}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                        IMO Number
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important", fontSize: "1.1rem" }}>
+                        {imo}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                        Admin Name
+                      </Typography>
+                      <Typography variant="body1" sx={{ color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important", fontSize: "1.1rem" }}>
+                        {adminName}
+                      </Typography>
+                    </Box>
 
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Assigned Crew Members
-                        </Typography>
-                        <Box
-                          sx={{
-                            mt: 1,
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 1,
-                          }}
-                        >
-                          {selectedShip?.crewMembers &&
-                            selectedShip.crewMembers.length > 0 ? (
-                            selectedShip.crewMembers.map((crewMember: any) => (
-                              <Chip
-                                key={crewMember._id || crewMember.id}
-                                label={`${crewMember.firstName} ${crewMember.lastName}`}
-                                size="small"
-                                sx={{
-                                  bgcolor: "rgba(22, 93, 255, 0.05)",
-                                  color: COLORS.TEXT_PRIMARY,
-                                  fontFamily: "var(--font-primary) !important",
-                                  fontWeight: 500,
-                                }}
-                              />
-                            ))
-                          ) : (
-                            <Typography
-                              variant="body2"
+                    <Box>
+                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                        Assigned Crew Members
+                      </Typography>
+                      <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {selectedShip?.crewMembers && selectedShip.crewMembers.length > 0 ? (
+                          selectedShip.crewMembers.map((crewMember: any) => (
+                            <Chip
+                              key={crewMember._id || crewMember.id}
+                              label={`${crewMember.firstName} ${crewMember.lastName}`}
+                              size="small"
                               sx={{
-                                color: COLORS.TEXT_SECONDARY,
+                                bgcolor: "rgba(22, 93, 255, 0.05)",
+                                color: COLORS.TEXT_PRIMARY,
                                 fontFamily: "var(--font-primary) !important",
-                                fontStyle: "italic",
+                                fontWeight: 500,
                               }}
-                            >
-                              No crew members assigned
-                            </Typography>
-                          )}
-                        </Box>
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important", fontStyle: "italic" }}>
+                            No crew members assigned
+                          </Typography>
+                        )}
                       </Box>
+                    </Box>
 
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Assigned Superintendents
-                        </Typography>
-                        <Box
-                          sx={{
-                            mt: 1,
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 1,
-                          }}
-                        >
-                          {selectedShip?.superintendents &&
-                            selectedShip.superintendents.length > 0 ? (
-                            selectedShip.superintendents.map((supt: any) => (
-                              <Chip
-                                key={supt._id || supt.id}
-                                label={`${supt.firstName} ${supt.lastName}`}
-                                size="small"
-                                sx={{
-                                  bgcolor: "rgba(22, 93, 255, 0.05)",
-                                  color: COLORS.TEXT_PRIMARY,
-                                  fontFamily: "var(--font-primary) !important",
-                                  fontWeight: 500,
-                                }}
-                              />
-                            ))
-                          ) : (
-                            <Typography
-                              variant="body2"
+                    <Box>
+                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                        Assigned Superintendents
+                      </Typography>
+                      <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {selectedShip?.superintendents && selectedShip.superintendents.length > 0 ? (
+                          selectedShip.superintendents.map((supt: any) => (
+                            <Chip
+                              key={supt._id || supt.id}
+                              label={`${supt.firstName} ${supt.lastName}`}
+                              size="small"
                               sx={{
-                                color: COLORS.TEXT_SECONDARY,
+                                bgcolor: "rgba(22, 93, 255, 0.05)",
+                                color: COLORS.TEXT_PRIMARY,
                                 fontFamily: "var(--font-primary) !important",
-                                fontStyle: "italic",
+                                fontWeight: 500,
                               }}
-                            >
-                              No superintendents assigned
-                            </Typography>
-                          )}
-                        </Box>
+                            />
+                          ))
+                        ) : (
+                          <Typography variant="body2" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important", fontStyle: "italic" }}>
+                            No superintendents assigned
+                          </Typography>
+                        )}
                       </Box>
-                    </>
-                  ) : (
-                    <>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <Stack direction="row" spacing={2}>
                       <TextField
                         label="Ship Name"
                         fullWidth
                         variant="outlined"
+                        size="small"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         sx={textFieldStyle}
@@ -934,181 +888,110 @@ export default function ShipManagementLayout() {
                         label="IMO Number"
                         fullWidth
                         variant="outlined"
+                        size="small"
                         value={imo}
                         onChange={(e) => setImo(e.target.value)}
                         sx={textFieldStyle}
                       />
+                    </Stack>
 
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                            mb: 1,
-                            display: "block",
-                          }}
+                    <Box>
+                      <FormControl fullWidth size="small" sx={textFieldStyle}>
+                        <InputLabel id="crew-multiple-select-label">
+                          Assign Crew Members
+                        </InputLabel>
+                        <Select
+                          labelId="crew-multiple-select-label"
+                          multiple
+                          value={selectedCrewIds}
+                          label="Assign Crew Members "
+                          onChange={(e) =>
+                            setSelectedCrewIds(e.target.value as any[])
+                          }
+                          renderValue={(selected) => (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                              {(selected as any[]).map((value) => {
+                                const member = crew.find((c) => (c._id || c.id) === value);
+                                return (
+                                  <Chip
+                                    key={value}
+                                    label={member ? `${member.firstName} ${member.lastName}` : value}
+                                    size="small"
+                                    sx={{ fontFamily: "var(--font-primary) !important" }}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          )}
                         >
-                          Assign Crew Members (Optional)
-                        </Typography>
-                        <FormControl fullWidth sx={textFieldStyle}>
-                          <InputLabel id="crew-multiple-select-label">
-                            Select Crew Members
-                          </InputLabel>
-                          <Select
-                            labelId="crew-multiple-select-label"
-                            multiple
-                            value={selectedCrewIds}
-                            label="Select Crew Members"
-                            onChange={(e) =>
-                              setSelectedCrewIds(e.target.value as any[])
-                            }
-                            renderValue={(selected) => (
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 0.5,
-                                }}
-                              >
-                                {(selected as any[]).map((value) => {
-                                  const member = crew.find(
-                                    (c) => (c._id || c.id) === value
-                                  );
-                                  return (
-                                    <Chip
-                                      key={value}
-                                      label={
-                                        member
-                                          ? `${member.firstName} ${member.lastName}`
-                                          : value
-                                      }
-                                      size="small"
-                                      sx={{
-                                        fontFamily:
-                                          "var(--font-primary) !important",
-                                      }}
-                                    />
-                                  );
-                                })}
-                              </Box>
-                            )}
-                          >
-                            {crew.map((member) => (
-                              <MenuItem
-                                key={member._id || member.id}
-                                value={member._id || member.id}
-                                sx={{
-                                  fontFamily: "var(--font-primary) !important",
-                                }}
-                              >
-                                <Checkbox
-                                  checked={selectedCrewIds.includes(
-                                    member._id || member.id
-                                  )}
-                                />
-                                <ListItemText
-                                  primary={`${member.firstName} ${member.lastName}`}
-                                  secondary={member.email}
-                                  primaryTypographyProps={{
-                                    fontFamily: "var(--font-primary) !important",
-                                  }}
-                                  secondaryTypographyProps={{
-                                    fontFamily: "var(--font-primary) !important",
-                                  }}
-                                />
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
+                          {crew.map((member) => (
+                            <MenuItem
+                              key={member._id || member.id}
+                              value={member._id || member.id}
+                              sx={{ fontFamily: "var(--font-primary) !important" }}
+                            >
+                              <Checkbox checked={selectedCrewIds.includes(member._id || member.id)} />
+                              <ListItemText
+                                primary={`${member.firstName} ${member.lastName}`}
+                                secondary={member.email}
+                                primaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
+                                secondaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
+                              />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
 
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                            mb: 1,
-                            display: "block",
-                          }}
+                    <Box>
+                      <FormControl fullWidth size="small" sx={textFieldStyle}>
+                        <InputLabel id="superintendent-multiple-select-label">
+                          Assign Superintendents
+                        </InputLabel>
+                        <Select
+                          labelId="superintendent-multiple-select-label"
+                          multiple
+                          value={selectedSuperintendentIds}
+                          label="Assign Superintendents"
+                          onChange={(e) =>
+                            setSelectedSuperintendentIds(e.target.value as any[])
+                          }
+                          renderValue={(selected) => (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                              {(selected as any[]).map((value) => {
+                                const member = superintendents.find((s) => (s._id || s.id) === value);
+                                return (
+                                  <Chip
+                                    key={value}
+                                    label={member ? `${member.firstName} ${member.lastName}` : value}
+                                    size="small"
+                                    sx={{ fontFamily: "var(--font-primary) !important" }}
+                                  />
+                                );
+                              })}
+                            </Box>
+                          )}
                         >
-                          Assign Superintendents (Optional)
-                        </Typography>
-                        <FormControl fullWidth sx={textFieldStyle}>
-                          <InputLabel id="superintendent-multiple-select-label">
-                            Select Superintendents
-                          </InputLabel>
-                          <Select
-                            labelId="superintendent-multiple-select-label"
-                            multiple
-                            value={selectedSuperintendentIds}
-                            label="Select Superintendents"
-                            onChange={(e) =>
-                              setSelectedSuperintendentIds(e.target.value as any[])
-                            }
-                            renderValue={(selected) => (
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 0.5,
-                                }}
-                              >
-                                {(selected as any[]).map((value) => {
-                                  const member = superintendents.find(
-                                    (s) => (s._id || s.id) === value
-                                  );
-                                  return (
-                                    <Chip
-                                      key={value}
-                                      label={
-                                        member
-                                          ? `${member.firstName} ${member.lastName}`
-                                          : value
-                                      }
-                                      size="small"
-                                      sx={{
-                                        fontFamily:
-                                          "var(--font-primary) !important",
-                                      }}
-                                    />
-                                  );
-                                })}
-                              </Box>
-                            )}
-                          >
-                            {superintendents.map((member) => (
-                              <MenuItem
-                                key={member._id || member.id}
-                                value={member._id || member.id}
-                                sx={{
-                                  fontFamily: "var(--font-primary) !important",
-                                }}
-                              >
-                                <Checkbox
-                                  checked={selectedSuperintendentIds.includes(
-                                    member._id || member.id
-                                  )}
-                                />
-                                <ListItemText
-                                  primary={`${member.firstName} ${member.lastName}`}
-                                  secondary={member.email}
-                                  primaryTypographyProps={{
-                                    fontFamily: "var(--font-primary) !important",
-                                  }}
-                                  secondaryTypographyProps={{
-                                    fontFamily: "var(--font-primary) !important",
-                                  }}
-                                />
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </>
-                  )}
-                </Stack>
+                          {superintendents.map((member) => (
+                            <MenuItem
+                              key={member._id || member.id}
+                              value={member._id || member.id}
+                              sx={{ fontFamily: "var(--font-primary) !important" }}
+                            >
+                              <Checkbox checked={selectedSuperintendentIds.includes(member._id || member.id)} />
+                              <ListItemText
+                                primary={`${member.firstName} ${member.lastName}`}
+                                secondary={member.email}
+                                primaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
+                                secondaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
+                              />
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </>
+                )}
 
                 <Divider sx={{ borderColor: COLORS.FOREGROUND }} />
 
@@ -1171,7 +1054,7 @@ export default function ShipManagementLayout() {
                         >
                           {selectedCategory &&
                             pendingDocuments[selectedCategory]?.length > 0
-                            ? "Add More PDF"
+                            ? "Upload More PDF"
                             : "Upload PDF"}
                           <input
                             type="file"
@@ -1183,6 +1066,21 @@ export default function ShipManagementLayout() {
                           />
                         </Button>
                       </Stack>
+                      {selectedCategory &&
+                        pendingDocuments[selectedCategory]?.length > 0 && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              mt: 1,
+                              display: "block",
+                              color: COLORS.ACCENT,
+                              fontWeight: 600,
+                              textAlign: "center"
+                            }}
+                          >
+                            PDF added successfully! Click "Upload More PDF" to add another file to this category.
+                          </Typography>
+                        )}
                       {!selectedCategory && (
                         <Typography
                           variant="caption"
@@ -1741,26 +1639,26 @@ export default function ShipManagementLayout() {
             </Box>
           </Modal>
         </Box>
-      </Box>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Alert
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
           onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{
-            width: "100%",
-            fontFamily: "var(--font-primary)",
-            fontWeight: 600,
-          }}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{
+              width: "100%",
+              fontFamily: "var(--font-primary)",
+              fontWeight: 600,
+            }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Box>
     </Box>
   );
 }

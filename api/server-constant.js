@@ -1,4 +1,5 @@
-const baseUrl = "http://13.49.158.124/";
+const baseUrl = "https://ai.shipsmithgroup.com/";
+
 export const serverConstants = {
     authenticationUrls: `${baseUrl}api/auth`,
     shipUrls:`${baseUrl}api`,

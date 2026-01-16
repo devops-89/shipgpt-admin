@@ -52,14 +52,18 @@ export const updateCrewStatus = createAsyncThunk(
 
 interface CrewState {
     crew: any[];
+    selectedCrewDetails: any | null;
     loading: boolean;
+    detailsLoading: boolean;
     error: string | null;
     createLoading: boolean;
 }
 
 const initialState: CrewState = {
     crew: [],
+    selectedCrewDetails: null,
     loading: false,
+    detailsLoading: false,
     error: null,
     createLoading: false,
 };
@@ -98,6 +102,18 @@ const crewSlice = createSlice({
 
                 state.error = action.payload as string;
             })
+            .addCase(fetchCrewDetails.pending, (state) => {
+                state.detailsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchCrewDetails.fulfilled, (state, action) => {
+                state.detailsLoading = false;
+                state.selectedCrewDetails = action.payload;
+            })
+            .addCase(fetchCrewDetails.rejected, (state, action) => {
+                state.detailsLoading = false;
+                state.error = action.payload as string;
+            })
             .addCase(updateCrewStatus.fulfilled, (state, action) => {
                 const { id, status } = action.payload;
                 const index = state.crew.findIndex((c) => (c._id === id || c.id === id));
@@ -108,6 +124,18 @@ const crewSlice = createSlice({
             });
     },
 });
+
+export const fetchCrewDetails = createAsyncThunk(
+    "crew/fetchCrewDetails",
+    async ({ id, role }: { id: string | number; role: string }, { rejectWithValue }) => {
+        try {
+            const response = await authControllers.getUserById(id, role);
+            return response.data.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch crew details");
+        }
+    }
+);
 
 export const { clearError } = crewSlice.actions;
 export default crewSlice.reducer;

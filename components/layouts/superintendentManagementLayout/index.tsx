@@ -682,12 +682,12 @@ export default function SuperintendentManagementLayout() {
                         disabled={createLoading || formik.isSubmitting}
                         sx={{
                           mt: 2,
-                          bgcolor: COLORS.GREEN,
+                          bgcolor: COLORS.ACCENT,
                           color: COLORS.WHITE,
                           borderRadius: "10px",
                           textTransform: "none",
                           fontFamily: "var(--font-primary) !important",
-                          "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                          "&:hover": { bgcolor: "#0052E0" },
                         }}
                       >
                         {openAddModal

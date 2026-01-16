@@ -39,11 +39,12 @@ import {
   createCrew,
   clearError,
   updateCrewStatus,
+  fetchCrewDetails,
 } from "@/redux/slices/crewSlice";
 
 export default function CrewManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
-  const { crew, loading, error, createLoading } = useSelector(
+  const { crew, loading, error, createLoading, selectedCrewDetails, detailsLoading } = useSelector(
     (state: RootState) => state.crew
   );
 
@@ -148,6 +149,7 @@ export default function CrewManagementLayout() {
     setSelectedCrew(member);
     setIsEditing(false);
     setOpenViewModal(true);
+    dispatch(fetchCrewDetails({ id: member.id || member._id, role: member.role || "CREW" }));
   };
 
   const handleCloseView = () => {
@@ -542,11 +544,11 @@ export default function CrewManagementLayout() {
                     disabled={createLoading || formik.isSubmitting}
                     sx={{
                       mt: 2,
-                      bgcolor: COLORS.GREEN,
+                      bgcolor: COLORS.ACCENT,
                       color: COLORS.WHITE,
                       borderRadius: "10px",
                       fontFamily: "var(--font-primary) !important",
-                      "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                      "&:hover": { bgcolor: "#0052E0" },
                     }}
                   >
                     {createLoading ? "Adding..." : "Add Crew"}
@@ -593,6 +595,10 @@ export default function CrewManagementLayout() {
                       Edit functionality pending implementation of specific API.
                     </Typography>
                   </Box>
+                ) : detailsLoading ? (
+                  <Typography align="center" sx={commonStyles}>
+                    Loading details...
+                  </Typography>
                 ) : (
                   <>
                     <Box>
@@ -614,7 +620,7 @@ export default function CrewManagementLayout() {
                           fontSize: "1.1rem",
                         }}
                       >
-                        {selectedCrew?.firstName} {selectedCrew?.lastName}
+                        {selectedCrewDetails?.firstName} {selectedCrewDetails?.lastName}
                       </Typography>
                     </Box>
                     <Box>
@@ -635,7 +641,7 @@ export default function CrewManagementLayout() {
                           fontSize: "1.1rem",
                         }}
                       >
-                        {selectedCrew?.email}
+                        {selectedCrewDetails?.email}
                       </Typography>
                     </Box>
                     <Box>
@@ -656,7 +662,7 @@ export default function CrewManagementLayout() {
                           fontSize: "1.1rem",
                         }}
                       >
-                        {selectedCrew?.role || "Crew"}
+                        {selectedCrewDetails?.role || "Crew"}
                       </Typography>
                     </Box>
                   </>

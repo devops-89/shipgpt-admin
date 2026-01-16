@@ -31,11 +31,11 @@ import { COLORS } from "@/utils/enum";
 
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { fetchUsers, updateUser, clearError } from "@/redux/slices/userSlice";
+import { fetchUsers, updateUser, clearError, fetchUserDetails } from "@/redux/slices/userSlice";
 
 export default function UserManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
-  const { users, loading, error } = useSelector(
+  const { users, loading, error, selectedUserDetails, detailsLoading } = useSelector(
     (state: RootState) => state.user
   );
 
@@ -84,6 +84,7 @@ export default function UserManagementLayout() {
     setSelectedUser(user);
     setIsEditing(false);
     setOpenViewModal(true);
+    dispatch(fetchUserDetails({ id: user.id || user._id, role: user.role }));
   };
 
   const handleCloseView = () => {
@@ -450,12 +451,12 @@ export default function UserManagementLayout() {
                     fullWidth
                     size="large"
                     sx={{
-                      bgcolor: COLORS.GREEN,
+                      bgcolor: COLORS.ACCENT,
                       color: COLORS.WHITE,
                       borderRadius: "10px",
                       textTransform: "none",
                       fontFamily: "var(--font-primary) !important",
-                      "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                      "&:hover": { bgcolor: "#0052E0" },
                     }}
                     onClick={async () => {
                       try {
@@ -481,48 +482,54 @@ export default function UserManagementLayout() {
                 </Stack>
               ) : (
                 <Stack spacing={2}>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: COLORS.TEXT_SECONDARY,
-                        fontFamily: "var(--font-primary) !important",
-                      }}
-                    >
-                      Name
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500} sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                      {selectedUser?.firstName} {selectedUser?.lastName}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: COLORS.TEXT_SECONDARY,
-                        fontFamily: "var(--font-primary) !important",
-                      }}
-                    >
-                      Email
-                    </Typography>
-                    <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                      {selectedUser?.email}
-                    </Typography>
-                  </Box>
-                  <Box>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: COLORS.TEXT_SECONDARY,
-                        fontFamily: "var(--font-primary) !important",
-                      }}
-                    >
-                      Role
-                    </Typography>
-                    <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                      {selectedUser?.role}
-                    </Typography>
-                  </Box>
+                  {detailsLoading ? (
+                    <Typography align="center" sx={commonStyles}>Loading details...</Typography>
+                  ) : (
+                    <>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: COLORS.TEXT_SECONDARY,
+                            fontFamily: "var(--font-primary) !important",
+                          }}
+                        >
+                          Name
+                        </Typography>
+                        <Typography variant="body1" fontWeight={500} sx={{ ...commonStyles, fontSize: '1.1rem' }}>
+                          {selectedUserDetails?.firstName} {selectedUserDetails?.lastName}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: COLORS.TEXT_SECONDARY,
+                            fontFamily: "var(--font-primary) !important",
+                          }}
+                        >
+                          Email
+                        </Typography>
+                        <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>
+                          {selectedUserDetails?.email}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: COLORS.TEXT_SECONDARY,
+                            fontFamily: "var(--font-primary) !important",
+                          }}
+                        >
+                          Role
+                        </Typography>
+                        <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>
+                          {selectedUserDetails?.role}
+                        </Typography>
+                      </Box>
+                    </>
+                  )}
                 </Stack>
               )}
             </Box>

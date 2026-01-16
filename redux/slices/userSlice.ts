@@ -20,13 +20,17 @@ export const fetchUsers = createAsyncThunk(
 
 interface UserState {
     users: any[];
+    selectedUserDetails: any | null;
     loading: boolean;
+    detailsLoading: boolean;
     error: string | null;
 }
 
 const initialState: UserState = {
     users: [],
+    selectedUserDetails: null,
     loading: false,
+    detailsLoading: false,
     error: null,
 };
 
@@ -50,6 +54,18 @@ const userSlice = createSlice({
             })
             .addCase(fetchUsers.rejected, (state, action) => {
                 state.loading = false;
+                state.error = action.payload as string;
+            })
+            .addCase(fetchUserDetails.pending, (state) => {
+                state.detailsLoading = true;
+                state.error = null;
+            })
+            .addCase(fetchUserDetails.fulfilled, (state, action) => {
+                state.detailsLoading = false;
+                state.selectedUserDetails = action.payload;
+            })
+            .addCase(fetchUserDetails.rejected, (state, action) => {
+                state.detailsLoading = false;
                 state.error = action.payload as string;
             })
             .addCase(updateUser.fulfilled, (state, action) => {
@@ -101,6 +117,33 @@ export const forgotPassword = createAsyncThunk(
             return response.data;
         } catch (error: any) {
             console.error("Forgot Password Thunk Error:", error.response?.data);
+            const errorData = error.response?.data;
+            const message = errorData?.message || errorData?.errors?.[0] || errorData?.error || "Connection/Backend issue";
+            return rejectWithValue(message);
+        }
+    }
+);
+
+export const fetchUserDetails = createAsyncThunk(
+    "user/fetchUserDetails",
+    async ({ id, role }: { id: string | number; role: string }, { rejectWithValue }) => {
+        try {
+            const response = await authControllers.getUserById(id, role);
+            return response.data.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch user details");
+        }
+    }
+);
+
+export const resetPassword = createAsyncThunk(
+    "user/resetPassword",
+    async (data: { email: string; otp: string; newPassword: any }, { rejectWithValue }) => {
+        try {
+            const response = await authControllers.resetPassword(data);
+            return response.data;
+        } catch (error: any) {
+            console.error("Reset Password Thunk Error:", error.response?.data);
             const errorData = error.response?.data;
             const message = errorData?.message || errorData?.errors?.[0] || errorData?.error || "Connection/Backend issue";
             return rejectWithValue(message);

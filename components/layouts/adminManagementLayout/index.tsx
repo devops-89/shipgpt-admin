@@ -482,12 +482,12 @@ export default function AdminManagementLayout() {
                     size="large"
                     disabled={createLoading || formik.isSubmitting}
                     sx={{
-                      bgcolor: COLORS.GREEN,
+                      bgcolor: COLORS.ACCENT,
                       color: COLORS.WHITE,
                       borderRadius: "10px",
                       textTransform: "none",
                       fontFamily: "var(--font-primary) !important",
-                      "&:hover": { bgcolor: COLORS.GREEN_DARK },
+                      "&:hover": { bgcolor: "#0052E0" },
                     }}
                   >
                     {createLoading ? "Creating..." : "Create Admin"}

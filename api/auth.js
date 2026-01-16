@@ -73,6 +73,14 @@ export const authControllers = {
       throw error;
     }
   },
+  resetPassword: async (data) => {
+    try {
+      let result = await publicApi.post("/reset-password", data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 
 };
 
