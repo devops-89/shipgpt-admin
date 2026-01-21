@@ -193,7 +193,7 @@ export default function UserManagementLayout() {
         </Box>
       )}
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar */} 
       <Drawer
         variant="temporary"
         open={mobileOpen}
