@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { scienceGothic } from "@/utils/fonts";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -49,7 +50,7 @@ export default function AdminManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { admins, loading, error, createLoading } = useSelector(
-    (state: RootState) => state.admin
+    (state: RootState) => state.admin,
   );
 
   const [openAddModal, setOpenAddModal] = useState(false);
@@ -79,7 +80,7 @@ export default function AdminManagementLayout() {
 
   const handleCloseSnackbar = (
     event?: React.SyntheticEvent | Event,
-    reason?: string
+    reason?: string,
   ) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -110,8 +111,6 @@ export default function AdminManagementLayout() {
     router.push(`/admin-management/${id}`);
   };
 
-
-
   const handleToggleStatusClick = (admin: any) => {
     setSelectedAdmin(admin);
     setOpenConfirmModal(true);
@@ -126,12 +125,10 @@ export default function AdminManagementLayout() {
         updateAdminStatus({
           id: selectedAdmin.id || selectedAdmin._id,
           status: newStatus,
-        })
+        }),
       );
       if (updateAdminStatus.fulfilled.match(resultAction)) {
-        showMessage(
-          `Admin ${newStatus ? "enabled" : "disabled"} successfully`
-        );
+        showMessage(`Admin ${newStatus ? "enabled" : "disabled"} successfully`);
         setOpenConfirmModal(false);
         setSelectedAdmin(null);
       }
@@ -191,6 +188,9 @@ export default function AdminManagementLayout() {
       fontFamily: "var(--font-primary) !important",
       color: COLORS.TEXT_PRIMARY,
     },
+    "& .MuiFormHelperText-root": {
+      fontFamily: "var(--font-primary) !important",
+    },
   };
 
   const validationSchema = Yup.object({
@@ -231,7 +231,15 @@ export default function AdminManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+    <Box
+      className={scienceGothic.className}
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        bgcolor: COLORS.FOREGROUND,
+      }}
+    >
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
@@ -297,11 +305,7 @@ export default function AdminManagementLayout() {
               gap: 2,
             }}
           >
-            <Typography
-              variant="h4"
-              fontWeight={700}
-              sx={commonStyles}
-            >
+            <Typography variant="h4" fontWeight={700} sx={commonStyles}>
               Admin Management
             </Typography>
 
@@ -342,30 +346,50 @@ export default function AdminManagementLayout() {
               <TableHead>
                 <TableRow sx={{ bgcolor: COLORS.WHITE }}>
                   <TableCell
-                    sx={{ color: COLORS.TEXT_PRIMARY, fontWeight: 600, fontFamily: "var(--font-primary) !important" }}
+                    sx={{
+                      color: COLORS.TEXT_PRIMARY,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Name
                   </TableCell>
                   <TableCell
-                    sx={{ color: COLORS.TEXT_PRIMARY, fontWeight: 600, fontFamily: "var(--font-primary) !important" }}
+                    sx={{
+                      color: COLORS.TEXT_PRIMARY,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Email
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ color: COLORS.TEXT_PRIMARY, fontWeight: 600, fontFamily: "var(--font-primary) !important" }}
+                    sx={{
+                      color: COLORS.TEXT_PRIMARY,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Role
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ color: COLORS.TEXT_PRIMARY, fontWeight: 600, fontFamily: "var(--font-primary) !important" }}
+                    sx={{
+                      color: COLORS.TEXT_PRIMARY,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Status
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ color: COLORS.TEXT_PRIMARY, fontWeight: 600, fontFamily: "var(--font-primary) !important" }}
+                    sx={{
+                      color: COLORS.TEXT_PRIMARY,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Actions
                   </TableCell>
@@ -382,9 +406,9 @@ export default function AdminManagementLayout() {
                 ) : (
                   (rowsPerPage > 0
                     ? admins?.slice(
-                      page * rowsPerPage,
-                      page * rowsPerPage + rowsPerPage
-                    )
+                        page * rowsPerPage,
+                        page * rowsPerPage + rowsPerPage,
+                      )
                     : admins
                   )?.map((row: any, index: number) => (
                     <TableRow
@@ -404,9 +428,7 @@ export default function AdminManagementLayout() {
                       <TableCell sx={commonStyles}>
                         {row.name || `${row.firstName} ${row.lastName}`}
                       </TableCell>
-                      <TableCell sx={commonStyles}>
-                        {row.email}
-                      </TableCell>
+                      <TableCell sx={commonStyles}>{row.email}</TableCell>
                       <TableCell align="center">
                         <Chip
                           label={row.role || "Admin"}
@@ -425,6 +447,15 @@ export default function AdminManagementLayout() {
                             row.status === "Active" || row.isActive === true
                           }
                           onChange={() => handleToggleStatusClick(row)}
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked": {
+                              color: COLORS.ACCENT,
+                            },
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                              {
+                                backgroundColor: COLORS.ACCENT,
+                              },
+                          }}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -439,7 +470,6 @@ export default function AdminManagementLayout() {
                   ))
                 )}
               </TableBody>
-
             </Table>
             <TablePagination
               rowsPerPageOptions={[5, 10, 25]}
@@ -460,16 +490,17 @@ export default function AdminManagementLayout() {
                 "& .MuiTablePagination-actions": {
                   color: COLORS.TEXT_PRIMARY,
                 },
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                  fontFamily: "var(--font-primary) !important"
-                }
+                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                  {
+                    fontFamily: "var(--font-primary) !important",
+                  },
               }}
             />
           </TableContainer>
 
           {/* ADD MODAL */}
           <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
-            <Box sx={modalStyle}>
+            <Box className={scienceGothic.className} sx={modalStyle}>
               <Box
                 sx={{
                   display: "flex",
@@ -498,8 +529,13 @@ export default function AdminManagementLayout() {
                     value={formik.values.firstName}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    error={formik.touched.firstName && Boolean(formik.errors.firstName)}
-                    helperText={formik.touched.firstName && formik.errors.firstName}
+                    error={
+                      formik.touched.firstName &&
+                      Boolean(formik.errors.firstName)
+                    }
+                    helperText={
+                      formik.touched.firstName && formik.errors.firstName
+                    }
                     autoComplete="off"
                   />
                   <TextField
@@ -509,8 +545,12 @@ export default function AdminManagementLayout() {
                     value={formik.values.lastName}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-                    helperText={formik.touched.lastName && formik.errors.lastName}
+                    error={
+                      formik.touched.lastName && Boolean(formik.errors.lastName)
+                    }
+                    helperText={
+                      formik.touched.lastName && formik.errors.lastName
+                    }
                     autoComplete="off"
                   />
                   <TextField
@@ -532,8 +572,12 @@ export default function AdminManagementLayout() {
                     value={formik.values.password}
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    error={formik.touched.password && Boolean(formik.errors.password)}
-                    helperText={formik.touched.password && formik.errors.password}
+                    error={
+                      formik.touched.password && Boolean(formik.errors.password)
+                    }
+                    helperText={
+                      formik.touched.password && formik.errors.password
+                    }
                     autoComplete="new-password"
                   />
 
@@ -559,22 +603,20 @@ export default function AdminManagementLayout() {
             </Box>
           </Modal>
 
-
-
           {/* Confirmation Pop-up */}
           <Modal
             open={openConfirmModal}
             onClose={() => setOpenConfirmModal(false)}
           >
-            <Box sx={confirmModalStyle}>
+            <Box className={scienceGothic.className} sx={confirmModalStyle}>
               <Typography
                 variant="h6"
                 fontWeight={700}
                 gutterBottom
                 sx={commonStyles}
               >
-                {(selectedAdmin?.status === "Active" ||
-                  selectedAdmin?.isActive === true)
+                {selectedAdmin?.status === "Active" ||
+                selectedAdmin?.isActive === true
                   ? "Disable Admin"
                   : "Enable Admin"}
               </Typography>
@@ -587,8 +629,8 @@ export default function AdminManagementLayout() {
                 }}
               >
                 Are you sure you want to{" "}
-                {(selectedAdmin?.status === "Active" ||
-                  selectedAdmin?.isActive === true)
+                {selectedAdmin?.status === "Active" ||
+                selectedAdmin?.isActive === true
                   ? "disable"
                   : "enable"}{" "}
                 this admin&#39;s profile?
@@ -629,8 +671,8 @@ export default function AdminManagementLayout() {
               </Box>
             </Box>
           </Modal>
-        </Box >
-      </Box >
+        </Box>
+      </Box>
 
       <Snackbar
         open={snackbar.open}
@@ -650,6 +692,6 @@ export default function AdminManagementLayout() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box >
+    </Box>
   );
 }

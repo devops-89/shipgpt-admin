@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { scienceGothic } from "@/utils/fonts";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -94,7 +95,9 @@ export default function ShipManagementLayout() {
     createLoading,
   } = useSelector((state: RootState) => state.ship);
   const { crew } = useSelector((state: RootState) => state.crew);
-  const { superintendents } = useSelector((state: RootState) => state.superintendent);
+  const { superintendents } = useSelector(
+    (state: RootState) => state.superintendent,
+  );
 
   const displayShips = ships.map((item: any) => ({
     id: item._id || item.id,
@@ -126,7 +129,7 @@ export default function ShipManagementLayout() {
 
   const handleCloseSnackbar = (
     event?: React.SyntheticEvent | Event,
-    reason?: string
+    reason?: string,
   ) => {
     if (reason === "clickaway") {
       return;
@@ -153,8 +156,12 @@ export default function ShipManagementLayout() {
   const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
-  const [selectedCrewIds, setSelectedCrewIds] = useState<(string | number)[]>([]);
-  const [selectedSuperintendentIds, setSelectedSuperintendentIds] = useState<(string | number)[]>([]);
+  const [selectedCrewIds, setSelectedCrewIds] = useState<(string | number)[]>(
+    [],
+  );
+  const [selectedSuperintendentIds, setSelectedSuperintendentIds] = useState<
+    (string | number)[]
+  >([]);
   const [crewSearch, setCrewSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [userRole, setUserRole] = useState<string>("");
@@ -194,7 +201,8 @@ export default function ShipManagementLayout() {
         Mechanical: [],
       };
 
-      const rawPdfs = reduxSelectedShip.pdfs || reduxSelectedShip.documents || [];
+      const rawPdfs =
+        reduxSelectedShip.pdfs || reduxSelectedShip.documents || [];
       if (Array.isArray(rawPdfs)) {
         rawPdfs.forEach((pdf: any) => {
           if (pdf.type) {
@@ -221,7 +229,8 @@ export default function ShipManagementLayout() {
         adminName: reduxSelectedShip.admin
           ? `${reduxSelectedShip.admin.firstName} ${reduxSelectedShip.admin.lastName}`
           : "N/A",
-        crewMembers: reduxSelectedShip.crewMembers || reduxSelectedShip.crews || [],
+        crewMembers:
+          reduxSelectedShip.crewMembers || reduxSelectedShip.crews || [],
         superintendents: reduxSelectedShip.superintendents || [],
       };
       setSelectedShip(detailedShip);
@@ -238,7 +247,9 @@ export default function ShipManagementLayout() {
       }
 
       if (reduxSelectedShip.superintendents) {
-        setSelectedSuperintendentIds(reduxSelectedShip.superintendents.map((s: any) => s._id || s.id));
+        setSelectedSuperintendentIds(
+          reduxSelectedShip.superintendents.map((s: any) => s._id || s.id),
+        );
       } else {
         setSelectedSuperintendentIds([]);
       }
@@ -298,7 +309,9 @@ export default function ShipManagementLayout() {
       }));
 
       e.target.value = "";
-      showMessage(`Selected ${validFiles.length} PDF(s). You can upload more if needed.`);
+      showMessage(
+        `Selected ${validFiles.length} PDF(s). You can upload more if needed.`,
+      );
     }
   };
 
@@ -328,7 +341,10 @@ export default function ShipManagementLayout() {
           showMessage(`${doc.name} uploaded successfully`);
         } catch (err: any) {
           if (err.response && err.response.status === 413) {
-            showMessage(`File "${doc.name}" is too large for the server.`, "error");
+            showMessage(
+              `File "${doc.name}" is too large for the server.`,
+              "error",
+            );
           } else {
             showMessage(`Failed to upload ${doc.name}`, "error");
           }
@@ -352,18 +368,21 @@ export default function ShipManagementLayout() {
         await uploadPendingDocs(newShipId);
         if (selectedCrewIds.length > 0) {
           await dispatch(
-            assignCrewToShip({ shipId: newShipId, crewIds: selectedCrewIds })
+            assignCrewToShip({ shipId: newShipId, crewIds: selectedCrewIds }),
           );
         }
         if (selectedSuperintendentIds.length > 0) {
           await dispatch(
-            assignSuperintendentsToShip({ shipId: newShipId, superintendentIds: selectedSuperintendentIds })
+            assignSuperintendentsToShip({
+              shipId: newShipId,
+              superintendentIds: selectedSuperintendentIds,
+            }),
           );
         }
       } else {
         showMessage(
           "Ship created but could not upload documents (ID missing).",
-          "warning"
+          "warning",
         );
       }
 
@@ -385,14 +404,14 @@ export default function ShipManagementLayout() {
         assignCrewToShip({
           shipId: selectedShip.id,
           crewIds: selectedCrewIds,
-        })
+        }),
       );
 
       await dispatch(
         assignSuperintendentsToShip({
           shipId: selectedShip.id,
           superintendentIds: selectedSuperintendentIds,
-        })
+        }),
       );
 
       dispatch(fetchShips());
@@ -403,8 +422,8 @@ export default function ShipManagementLayout() {
     } catch (error: any) {
       showMessage(
         error.response?.data?.message ||
-        "Failed to update ship. Please try again.",
-        "error"
+          "Failed to update ship. Please try again.",
+        "error",
       );
     }
   };
@@ -426,8 +445,8 @@ export default function ShipManagementLayout() {
     } catch (error: any) {
       showMessage(
         error.response?.data?.message ||
-        "Failed to delete ship. Please try again.",
-        "error"
+          "Failed to delete ship. Please try again.",
+        "error",
       );
     }
   };
@@ -446,7 +465,7 @@ export default function ShipManagementLayout() {
     setSelectedCrewIds((prev) =>
       prev.includes(crewId)
         ? prev.filter((id) => id !== crewId)
-        : [...prev, crewId]
+        : [...prev, crewId],
     );
   };
 
@@ -458,7 +477,7 @@ export default function ShipManagementLayout() {
         assignCrewToShip({
           shipId: selectedShip.id,
           crewIds: selectedCrewIds,
-        })
+        }),
       );
       if (assignCrewToShip.fulfilled.match(resultAction)) {
         showMessage("Crew members assigned successfully!");
@@ -553,7 +572,15 @@ export default function ShipManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+    <Box
+      className={scienceGothic.className}
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        bgcolor: COLORS.FOREGROUND,
+      }}
+    >
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
@@ -694,9 +721,9 @@ export default function ShipManagementLayout() {
                 ) : (
                   (rowsPerPage > 0
                     ? displayShips.slice(
-                      page * rowsPerPage,
-                      page * rowsPerPage + rowsPerPage
-                    )
+                        page * rowsPerPage,
+                        page * rowsPerPage + rowsPerPage,
+                      )
                     : displayShips
                   ).map((row: any) => (
                     <TableRow key={row.id || row._id || Math.random()}>
@@ -710,6 +737,15 @@ export default function ShipManagementLayout() {
                         <Switch
                           checked={row.status === "Active"}
                           onChange={() => handleToggleStatusClick(row)}
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked": {
+                              color: COLORS.ACCENT,
+                            },
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                              {
+                                backgroundColor: COLORS.ACCENT,
+                              },
+                          }}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -745,9 +781,9 @@ export default function ShipManagementLayout() {
                   color: COLORS.TEXT_PRIMARY,
                 },
                 "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  fontFamily: "var(--font-primary) !important",
-                },
+                  {
+                    fontFamily: "var(--font-primary) !important",
+                  },
               }}
             />
           </TableContainer>
@@ -834,36 +870,90 @@ export default function ShipManagementLayout() {
                 {!openAddModal && !isEditing ? (
                   <>
                     <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
                         Ship Name
                       </Typography>
-                      <Typography variant="body1" fontWeight={500} sx={{ color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important", fontSize: "1.1rem" }}>
+                      <Typography
+                        variant="body1"
+                        fontWeight={500}
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                          fontSize: "1.1rem",
+                        }}
+                      >
                         {name}
                       </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
                         IMO Number
                       </Typography>
-                      <Typography variant="body1" sx={{ color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important", fontSize: "1.1rem" }}>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                          fontSize: "1.1rem",
+                        }}
+                      >
                         {imo}
                       </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
                         Admin Name
                       </Typography>
-                      <Typography variant="body1" sx={{ color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important", fontSize: "1.1rem" }}>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                          fontSize: "1.1rem",
+                        }}
+                      >
                         {adminName}
                       </Typography>
                     </Box>
 
                     <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
                         Assigned Crew Members
                       </Typography>
-                      <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
-                        {selectedShip?.crewMembers && selectedShip.crewMembers.length > 0 ? (
+                      <Box
+                        sx={{
+                          mt: 1,
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 1,
+                        }}
+                      >
+                        {selectedShip?.crewMembers &&
+                        selectedShip.crewMembers.length > 0 ? (
                           selectedShip.crewMembers.map((crewMember: any) => (
                             <Chip
                               key={crewMember._id || crewMember.id}
@@ -878,7 +968,14 @@ export default function ShipManagementLayout() {
                             />
                           ))
                         ) : (
-                          <Typography variant="body2" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important", fontStyle: "italic" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontStyle: "italic",
+                            }}
+                          >
                             No crew members assigned
                           </Typography>
                         )}
@@ -886,11 +983,25 @@ export default function ShipManagementLayout() {
                     </Box>
 
                     <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          color: COLORS.TEXT_SECONDARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
                         Assigned Superintendents
                       </Typography>
-                      <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
-                        {selectedShip?.superintendents && selectedShip.superintendents.length > 0 ? (
+                      <Box
+                        sx={{
+                          mt: 1,
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 1,
+                        }}
+                      >
+                        {selectedShip?.superintendents &&
+                        selectedShip.superintendents.length > 0 ? (
                           selectedShip.superintendents.map((supt: any) => (
                             <Chip
                               key={supt._id || supt.id}
@@ -905,7 +1016,14 @@ export default function ShipManagementLayout() {
                             />
                           ))
                         ) : (
-                          <Typography variant="body2" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important", fontStyle: "italic" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontStyle: "italic",
+                            }}
+                          >
                             No superintendents assigned
                           </Typography>
                         )}
@@ -949,15 +1067,30 @@ export default function ShipManagementLayout() {
                             setSelectedCrewIds(e.target.value as any[])
                           }
                           renderValue={(selected) => (
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.5,
+                              }}
+                            >
                               {(selected as any[]).map((value) => {
-                                const member = crew.find((c) => (c._id || c.id) === value);
+                                const member = crew.find(
+                                  (c) => (c._id || c.id) === value,
+                                );
                                 return (
                                   <Chip
                                     key={value}
-                                    label={member ? `${member.firstName} ${member.lastName}` : value}
+                                    label={
+                                      member
+                                        ? `${member.firstName} ${member.lastName}`
+                                        : value
+                                    }
                                     size="small"
-                                    sx={{ fontFamily: "var(--font-primary) !important" }}
+                                    sx={{
+                                      fontFamily:
+                                        "var(--font-primary) !important",
+                                    }}
                                   />
                                 );
                               })}
@@ -968,14 +1101,24 @@ export default function ShipManagementLayout() {
                             <MenuItem
                               key={member._id || member.id}
                               value={member._id || member.id}
-                              sx={{ fontFamily: "var(--font-primary) !important" }}
+                              sx={{
+                                fontFamily: "var(--font-primary) !important",
+                              }}
                             >
-                              <Checkbox checked={selectedCrewIds.includes(member._id || member.id)} />
+                              <Checkbox
+                                checked={selectedCrewIds.includes(
+                                  member._id || member.id,
+                                )}
+                              />
                               <ListItemText
                                 primary={`${member.firstName} ${member.lastName}`}
                                 secondary={member.email}
-                                primaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
-                                secondaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
+                                primaryTypographyProps={{
+                                  fontFamily: "var(--font-primary) !important",
+                                }}
+                                secondaryTypographyProps={{
+                                  fontFamily: "var(--font-primary) !important",
+                                }}
                               />
                             </MenuItem>
                           ))}
@@ -994,18 +1137,35 @@ export default function ShipManagementLayout() {
                           value={selectedSuperintendentIds}
                           label="Assign Superintendents"
                           onChange={(e) =>
-                            setSelectedSuperintendentIds(e.target.value as any[])
+                            setSelectedSuperintendentIds(
+                              e.target.value as any[],
+                            )
                           }
                           renderValue={(selected) => (
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.5,
+                              }}
+                            >
                               {(selected as any[]).map((value) => {
-                                const member = superintendents.find((s) => (s._id || s.id) === value);
+                                const member = superintendents.find(
+                                  (s) => (s._id || s.id) === value,
+                                );
                                 return (
                                   <Chip
                                     key={value}
-                                    label={member ? `${member.firstName} ${member.lastName}` : value}
+                                    label={
+                                      member
+                                        ? `${member.firstName} ${member.lastName}`
+                                        : value
+                                    }
                                     size="small"
-                                    sx={{ fontFamily: "var(--font-primary) !important" }}
+                                    sx={{
+                                      fontFamily:
+                                        "var(--font-primary) !important",
+                                    }}
                                   />
                                 );
                               })}
@@ -1016,14 +1176,24 @@ export default function ShipManagementLayout() {
                             <MenuItem
                               key={member._id || member.id}
                               value={member._id || member.id}
-                              sx={{ fontFamily: "var(--font-primary) !important" }}
+                              sx={{
+                                fontFamily: "var(--font-primary) !important",
+                              }}
                             >
-                              <Checkbox checked={selectedSuperintendentIds.includes(member._id || member.id)} />
+                              <Checkbox
+                                checked={selectedSuperintendentIds.includes(
+                                  member._id || member.id,
+                                )}
+                              />
                               <ListItemText
                                 primary={`${member.firstName} ${member.lastName}`}
                                 secondary={member.email}
-                                primaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
-                                secondaryTypographyProps={{ fontFamily: "var(--font-primary) !important" }}
+                                primaryTypographyProps={{
+                                  fontFamily: "var(--font-primary) !important",
+                                }}
+                                secondaryTypographyProps={{
+                                  fontFamily: "var(--font-primary) !important",
+                                }}
                               />
                             </MenuItem>
                           ))}
@@ -1093,7 +1263,7 @@ export default function ShipManagementLayout() {
                           }}
                         >
                           {selectedCategory &&
-                            pendingDocuments[selectedCategory]?.length > 0
+                          pendingDocuments[selectedCategory]?.length > 0
                             ? "Upload More PDF"
                             : "Upload PDF"}
                           <input
@@ -1115,10 +1285,11 @@ export default function ShipManagementLayout() {
                               display: "block",
                               color: COLORS.ACCENT,
                               fontWeight: 600,
-                              textAlign: "center"
+                              textAlign: "center",
                             }}
                           >
-                            PDF added successfully! Click "Upload More PDF" to add another file to this category.
+                            PDF added successfully! Click "Upload More PDF" to
+                            add another file to this category.
                           </Typography>
                         )}
                       {!selectedCategory && (
@@ -1142,165 +1313,165 @@ export default function ShipManagementLayout() {
                         {(pendingDocuments[category]?.length > 0 ||
                           (selectedShip?.documents[category] &&
                             selectedShip.documents[category].length > 0)) && (
-                            <>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ color: COLORS.TEXT_SECONDARY, mb: 1 }}
-                              >
-                                {category}
-                              </Typography>
-                              <List
-                                dense
-                                sx={{
-                                  bgcolor: "rgba(0,0,0,0.02)",
-                                  borderRadius: "10px",
-                                }}
-                              >
-                                {selectedShip?.documents &&
-                                  selectedShip.documents[category]?.map(
-                                    (doc, idx) => (
-                                      <ListItem
-                                        key={`existing-${idx}`}
-                                        divider={
-                                          idx !==
+                          <>
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ color: COLORS.TEXT_SECONDARY, mb: 1 }}
+                            >
+                              {category}
+                            </Typography>
+                            <List
+                              dense
+                              sx={{
+                                bgcolor: "rgba(0,0,0,0.02)",
+                                borderRadius: "10px",
+                              }}
+                            >
+                              {selectedShip?.documents &&
+                                selectedShip.documents[category]?.map(
+                                  (doc, idx) => (
+                                    <ListItem
+                                      key={`existing-${idx}`}
+                                      divider={
+                                        idx !==
                                           selectedShip.documents[category]
                                             .length -
-                                          1 ||
-                                          pendingDocuments[category].length > 0
-                                        }
-                                      >
-                                        <ListItemText
-                                          primary={
-                                            <Box
-                                              display="flex"
-                                              alignItems="center"
-                                              gap={1}
-                                            >
-                                              <InsertDriveFileIcon
-                                                fontSize="small"
-                                                sx={{ color: COLORS.ACCENT }}
-                                              />
-                                              <Box>
-                                                <Typography
-                                                  variant="body2"
-                                                  sx={commonStyles}
-                                                >
-                                                  {doc.name}
-                                                </Typography>
-                                                <Typography
-                                                  variant="caption"
-                                                  sx={{
-                                                    color: COLORS.TEXT_SECONDARY,
-                                                    fontSize: "0.7rem",
-                                                  }}
-                                                >
-                                                  Existing
-                                                </Typography>
-                                              </Box>
-                                            </Box>
-                                          }
-                                        />
-                                        <ListItemSecondaryAction>
-                                          <Stack direction="row" spacing={1}>
-                                            {doc.downloadUrl && (
-                                              <IconButton
-                                                edge="end"
-                                                size="small"
-                                                component="a"
-                                                href={doc.downloadUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={() =>
-                                                  showMessage(
-                                                    `Downloading "${doc.name}"...`
-                                                  )
-                                                }
-                                                sx={{ color: COLORS.ACCENT }}
-                                                title="Download"
-                                              >
-                                                <DownloadIcon fontSize="small" />
-                                              </IconButton>
-                                            )}
-                                            {isEditing && (
-                                              <IconButton
-                                                edge="end"
-                                                size="small"
-                                                onClick={() =>
-                                                  handleDeleteExistingDocument(
-                                                    category,
-                                                    (doc as any).id
-                                                  )
-                                                }
-                                                sx={{ color: COLORS.RED }}
-                                                title="Remove"
-                                              >
-                                                <DeleteIcon fontSize="small" />
-                                              </IconButton>
-                                            )}
-                                          </Stack>
-                                        </ListItemSecondaryAction>
-                                      </ListItem>
-                                    )
-                                  )}
-
-                                {pendingDocuments[category].map((doc, idx) => (
-                                  <ListItem
-                                    key={`pending-${idx}`}
-                                    divider={
-                                      idx !==
-                                      pendingDocuments[category].length - 1
-                                    }
-                                  >
-                                    <ListItemText
-                                      primary={
-                                        <Box
-                                          display="flex"
-                                          alignItems="center"
-                                          gap={1}
-                                        >
-                                          <InsertDriveFileIcon
-                                            fontSize="small"
-                                            sx={{ color: "orange" }}
-                                          />
-                                          <Box>
-                                            <Typography
-                                              variant="body2"
-                                              sx={commonStyles}
-                                            >
-                                              {doc.name}
-                                            </Typography>
-                                            <Typography
-                                              variant="caption"
-                                              sx={{
-                                                color: "orange",
-                                                fontSize: "0.7rem",
-                                              }}
-                                            >
-                                              Pending Upload
-                                            </Typography>
-                                          </Box>
-                                        </Box>
+                                            1 ||
+                                        pendingDocuments[category].length > 0
                                       }
-                                    />
-                                    {(openAddModal || isEditing) && (
+                                    >
+                                      <ListItemText
+                                        primary={
+                                          <Box
+                                            display="flex"
+                                            alignItems="center"
+                                            gap={1}
+                                          >
+                                            <InsertDriveFileIcon
+                                              fontSize="small"
+                                              sx={{ color: COLORS.ACCENT }}
+                                            />
+                                            <Box>
+                                              <Typography
+                                                variant="body2"
+                                                sx={commonStyles}
+                                              >
+                                                {doc.name}
+                                              </Typography>
+                                              <Typography
+                                                variant="caption"
+                                                sx={{
+                                                  color: COLORS.TEXT_SECONDARY,
+                                                  fontSize: "0.7rem",
+                                                }}
+                                              >
+                                                Existing
+                                              </Typography>
+                                            </Box>
+                                          </Box>
+                                        }
+                                      />
                                       <ListItemSecondaryAction>
-                                        <IconButton
-                                          edge="end"
-                                          size="small"
-                                          onClick={() =>
-                                            removeDocument(category, idx)
-                                          }
-                                          sx={{ color: COLORS.RED }}
-                                        >
-                                          <CloseIcon fontSize="small" />
-                                        </IconButton>
+                                        <Stack direction="row" spacing={1}>
+                                          {doc.downloadUrl && (
+                                            <IconButton
+                                              edge="end"
+                                              size="small"
+                                              component="a"
+                                              href={doc.downloadUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              onClick={() =>
+                                                showMessage(
+                                                  `Downloading "${doc.name}"...`,
+                                                )
+                                              }
+                                              sx={{ color: COLORS.ACCENT }}
+                                              title="Download"
+                                            >
+                                              <DownloadIcon fontSize="small" />
+                                            </IconButton>
+                                          )}
+                                          {isEditing && (
+                                            <IconButton
+                                              edge="end"
+                                              size="small"
+                                              onClick={() =>
+                                                handleDeleteExistingDocument(
+                                                  category,
+                                                  (doc as any).id,
+                                                )
+                                              }
+                                              sx={{ color: COLORS.RED }}
+                                              title="Remove"
+                                            >
+                                              <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                          )}
+                                        </Stack>
                                       </ListItemSecondaryAction>
-                                    )}
-                                  </ListItem>
-                                ))}
-                              </List>
-                            </>
-                          )}
+                                    </ListItem>
+                                  ),
+                                )}
+
+                              {pendingDocuments[category].map((doc, idx) => (
+                                <ListItem
+                                  key={`pending-${idx}`}
+                                  divider={
+                                    idx !==
+                                    pendingDocuments[category].length - 1
+                                  }
+                                >
+                                  <ListItemText
+                                    primary={
+                                      <Box
+                                        display="flex"
+                                        alignItems="center"
+                                        gap={1}
+                                      >
+                                        <InsertDriveFileIcon
+                                          fontSize="small"
+                                          sx={{ color: "orange" }}
+                                        />
+                                        <Box>
+                                          <Typography
+                                            variant="body2"
+                                            sx={commonStyles}
+                                          >
+                                            {doc.name}
+                                          </Typography>
+                                          <Typography
+                                            variant="caption"
+                                            sx={{
+                                              color: "orange",
+                                              fontSize: "0.7rem",
+                                            }}
+                                          >
+                                            Pending Upload
+                                          </Typography>
+                                        </Box>
+                                      </Box>
+                                    }
+                                  />
+                                  {(openAddModal || isEditing) && (
+                                    <ListItemSecondaryAction>
+                                      <IconButton
+                                        edge="end"
+                                        size="small"
+                                        onClick={() =>
+                                          removeDocument(category, idx)
+                                        }
+                                        sx={{ color: COLORS.RED }}
+                                      >
+                                        <CloseIcon fontSize="small" />
+                                      </IconButton>
+                                    </ListItemSecondaryAction>
+                                  )}
+                                </ListItem>
+                              ))}
+                            </List>
+                          </>
+                        )}
                       </Box>
                     ))}
                   </Stack>
@@ -1531,17 +1702,18 @@ export default function ShipManagementLayout() {
               <Box sx={{ flexGrow: 1, overflowY: "auto", p: 1 }}>
                 <List sx={{ pt: 0 }}>
                   {crew
-                    ?.filter((member: any) =>
-                      `${member.firstName} ${member.lastName}`
-                        .toLowerCase()
-                        .includes(crewSearch.toLowerCase()) ||
-                      member.email
-                        .toLowerCase()
-                        .includes(crewSearch.toLowerCase())
+                    ?.filter(
+                      (member: any) =>
+                        `${member.firstName} ${member.lastName}`
+                          .toLowerCase()
+                          .includes(crewSearch.toLowerCase()) ||
+                        member.email
+                          .toLowerCase()
+                          .includes(crewSearch.toLowerCase()),
                     )
                     .map((member: any) => {
                       const isSelected = selectedCrewIds.includes(
-                        member._id || member.id
+                        member._id || member.id,
                       );
                       return (
                         <ListItem

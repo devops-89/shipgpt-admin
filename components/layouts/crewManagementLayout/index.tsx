@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { scienceGothic } from "@/utils/fonts";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -48,9 +49,14 @@ import {
 
 export default function CrewManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
-  const { crew, loading, error, createLoading, selectedCrewDetails, detailsLoading } = useSelector(
-    (state: RootState) => state.crew
-  );
+  const {
+    crew,
+    loading,
+    error,
+    createLoading,
+    selectedCrewDetails,
+    detailsLoading,
+  } = useSelector((state: RootState) => state.crew);
 
   const [openAddModal, setOpenAddModal] = useState(false);
   const [openViewModal, setOpenViewModal] = useState(false);
@@ -81,7 +87,7 @@ export default function CrewManagementLayout() {
 
   const handleCloseSnackbar = (
     event?: React.SyntheticEvent | Event,
-    reason?: string
+    reason?: string,
   ) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -161,7 +167,12 @@ export default function CrewManagementLayout() {
     setSelectedCrew(member);
     setIsEditing(false);
     setOpenViewModal(true);
-    dispatch(fetchCrewDetails({ id: member.id || member._id, role: member.role || "CREW" }));
+    dispatch(
+      fetchCrewDetails({
+        id: member.id || member._id,
+        role: member.role || "CREW",
+      }),
+    );
   };
 
   const handleCloseView = () => {
@@ -189,11 +200,11 @@ export default function CrewManagementLayout() {
         updateCrewStatus({
           id: selectedCrew.id || selectedCrew._id,
           status: newStatus,
-        })
+        }),
       );
       if (updateCrewStatus.fulfilled.match(resultAction)) {
         showMessage(
-          `Crew member ${newStatus ? "enabled" : "disabled"} successfully`
+          `Crew member ${newStatus ? "enabled" : "disabled"} successfully`,
         );
         setOpenConfirmModal(false);
         setSelectedCrew(null);
@@ -268,7 +279,15 @@ export default function CrewManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+    <Box
+      className={scienceGothic.className}
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        bgcolor: COLORS.FOREGROUND,
+      }}
+    >
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
@@ -375,30 +394,50 @@ export default function CrewManagementLayout() {
               <TableHead sx={{ bgcolor: COLORS.WHITE }}>
                 <TableRow>
                   <TableCell
-                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                    sx={{
+                      fontWeight: 600,
+                      color: COLORS.TEXT_PRIMARY,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Name
                   </TableCell>
                   <TableCell
-                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                    sx={{
+                      fontWeight: 600,
+                      color: COLORS.TEXT_PRIMARY,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Email
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                    sx={{
+                      fontWeight: 600,
+                      color: COLORS.TEXT_PRIMARY,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Role
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                    sx={{
+                      fontWeight: 600,
+                      color: COLORS.TEXT_PRIMARY,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Status
                   </TableCell>
                   <TableCell
                     align="center"
-                    sx={{ fontWeight: 600, color: COLORS.TEXT_PRIMARY }}
+                    sx={{
+                      fontWeight: 600,
+                      color: COLORS.TEXT_PRIMARY,
+                      fontFamily: "var(--font-primary) !important",
+                    }}
                   >
                     Actions
                   </TableCell>
@@ -418,9 +457,9 @@ export default function CrewManagementLayout() {
                 ) : (
                   (rowsPerPage > 0
                     ? crew?.slice(
-                      page * rowsPerPage,
-                      page * rowsPerPage + rowsPerPage
-                    )
+                        page * rowsPerPage,
+                        page * rowsPerPage + rowsPerPage,
+                      )
                     : crew
                   )?.map((row) => (
                     <TableRow
@@ -430,11 +469,20 @@ export default function CrewManagementLayout() {
                       <TableCell
                         component="th"
                         scope="row"
-                        sx={{ fontWeight: 500, color: COLORS.TEXT_PRIMARY }}
+                        sx={{
+                          fontWeight: 500,
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
                       >
                         {row.firstName} {row.lastName}
                       </TableCell>
-                      <TableCell sx={{ color: COLORS.TEXT_PRIMARY }}>
+                      <TableCell
+                        sx={{
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
+                      >
                         {row.email}
                       </TableCell>
                       <TableCell align="center">
@@ -456,6 +504,15 @@ export default function CrewManagementLayout() {
                             row.status === "Active" || row.isActive === true
                           }
                           onChange={() => handleToggleStatusClick(row)}
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked": {
+                              color: COLORS.ACCENT,
+                            },
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                              {
+                                backgroundColor: COLORS.ACCENT,
+                              },
+                          }}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -484,11 +541,21 @@ export default function CrewManagementLayout() {
               }}
               sx={{
                 color: COLORS.TEXT_PRIMARY,
+                fontFamily: "var(--font-primary) !important",
                 "& .MuiTablePagination-selectIcon": {
                   color: COLORS.TEXT_PRIMARY,
                 },
                 "& .MuiTablePagination-actions": {
                   color: COLORS.TEXT_PRIMARY,
+                },
+                "& .MuiTablePagination-select": {
+                  fontFamily: "var(--font-primary) !important",
+                },
+                "& .MuiTablePagination-selectLabel": {
+                  fontFamily: "var(--font-primary) !important",
+                },
+                "& .MuiTablePagination-displayedRows": {
+                  fontFamily: "var(--font-primary) !important",
                 },
               }}
             />
@@ -654,7 +721,9 @@ export default function CrewManagementLayout() {
                     </Typography>
                   </Box>
                 ) : detailsLoading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", py: 4 }}
+                  >
                     <CircularProgress size={40} sx={{ color: COLORS.ACCENT }} />
                   </Box>
                 ) : (
@@ -678,7 +747,8 @@ export default function CrewManagementLayout() {
                           fontSize: "1.1rem",
                         }}
                       >
-                        {selectedCrewDetails?.firstName} {selectedCrewDetails?.lastName}
+                        {selectedCrewDetails?.firstName}{" "}
+                        {selectedCrewDetails?.lastName}
                       </Typography>
                     </Box>
                     <Box>
@@ -789,8 +859,8 @@ export default function CrewManagementLayout() {
                   fontFamily: "var(--font-primary) !important",
                 }}
               >
-                {(selectedCrew?.status === "Active" ||
-                  selectedCrew?.isActive === true)
+                {selectedCrew?.status === "Active" ||
+                selectedCrew?.isActive === true
                   ? "Disable Crew Member"
                   : "Enable Crew Member"}
               </Typography>
@@ -803,8 +873,8 @@ export default function CrewManagementLayout() {
                 }}
               >
                 Are you sure you want to{" "}
-                {(selectedCrew?.status === "Active" ||
-                  selectedCrew?.isActive === true)
+                {selectedCrew?.status === "Active" ||
+                selectedCrew?.isActive === true
                   ? "disable"
                   : "enable"}{" "}
                 this crew member&#39;s account?
