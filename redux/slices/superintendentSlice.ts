@@ -41,6 +41,8 @@ interface SuperintendentState {
     loading: boolean;
     error: string | null;
     createLoading: boolean;
+    detailsLoading: boolean;
+    selectedSuperintendentDetails: any | null;
 }
 
 const initialState: SuperintendentState = {
@@ -48,6 +50,8 @@ const initialState: SuperintendentState = {
     loading: false,
     error: null,
     createLoading: false,
+    detailsLoading: false,
+    selectedSuperintendentDetails: null,
 };
 
 const superintendentSlice = createSlice({
@@ -90,6 +94,18 @@ const superintendentSlice = createSlice({
                     state.superintendents[index].isActive = status;
                     state.superintendents[index].status = status ? 'Active' : 'Inactive';
                 }
+            })
+            .addCase(fetchSuperintendentDetails.pending, (state) => {
+                state.detailsLoading = true;
+                state.selectedSuperintendentDetails = null;
+            })
+            .addCase(fetchSuperintendentDetails.fulfilled, (state, action) => {
+                state.detailsLoading = false;
+                state.selectedSuperintendentDetails = action.payload;
+            })
+            .addCase(fetchSuperintendentDetails.rejected, (state, action) => {
+                state.detailsLoading = false;
+                state.error = action.payload as string;
             });
     },
 });
@@ -102,6 +118,18 @@ export const updateSuperintendentStatus = createAsyncThunk(
             return { id, status };
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || "Failed to update superintendent status");
+        }
+    }
+);
+
+export const fetchSuperintendentDetails = createAsyncThunk(
+    "superintendent/fetchDetails",
+    async ({ id, role }: { id: string | number; role: string }, { rejectWithValue }) => {
+        try {
+            const response = await authControllers.getUserById(id, role);
+            return response.data?.data || response.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch superintendent details");
         }
     }
 );

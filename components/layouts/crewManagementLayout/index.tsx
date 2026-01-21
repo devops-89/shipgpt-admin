@@ -23,6 +23,10 @@ import {
   Snackbar,
   Alert,
   AlertColor,
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Drawer,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
@@ -56,6 +60,14 @@ export default function CrewManagementLayout() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [userRole, setUserRole] = useState<string>("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -199,7 +211,10 @@ export default function CrewManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: { xs: "90%", sm: 500 },
+    width: "90%",
+    maxWidth: 500,
+    maxHeight: "90vh",
+    overflowY: "auto",
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     boxShadow: 24,
@@ -238,7 +253,10 @@ export default function CrewManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: 400,
+    width: "90%",
+    maxWidth: 400,
+    maxHeight: "90vh",
+    overflowY: "auto",
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     boxShadow: 24,
@@ -250,27 +268,53 @@ export default function CrewManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Box
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: "260px",
+            height: "100%",
+            overflowY: "auto",
+            borderRight: `1px solid ${COLORS.FOREGROUND}`,
+            bgcolor: COLORS.WHITE,
+          }}
+        >
+          <Sidebar />
+        </Box>
+      )}
+
+      {/* Mobile Sidebar */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
         sx={{
-          width: "20%",
-          height: "100%",
-          overflowY: "auto",
-          borderRight: `1px solid ${COLORS.FOREGROUND}`,
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: 260,
+            bgcolor: COLORS.WHITE,
+          },
         }}
       >
         <Sidebar />
-      </Box>
+      </Drawer>
 
       <Box
         sx={{
-          width: "80%",
-          height: "100%",
+          flexGrow: 1,
           display: "flex",
           flexDirection: "column",
+          width: isMobile ? "100%" : "calc(100% - 260px)",
+          height: "100%",
+          overflow: "hidden",
         }}
       >
-        <Navbar />
+        <Navbar onMenuClick={handleDrawerToggle} />
         <Box
           sx={{
             p: 3,
@@ -286,7 +330,7 @@ export default function CrewManagementLayout() {
               display: "flex",
               flexDirection: { xs: "column", sm: "row" },
               justifyContent: "space-between",
-              alignItems: { xs: "start", sm: "center" },
+              alignItems: { xs: "flex-start", sm: "center" },
               gap: 2,
             }}
           >
@@ -324,7 +368,7 @@ export default function CrewManagementLayout() {
               border: `1px solid ${COLORS.FOREGROUND}`,
               borderRadius: "10px",
               bgcolor: COLORS.WHITE,
-              overflow: "hidden",
+              overflowX: "auto",
             }}
           >
             <Table sx={{ minWidth: 650 }} aria-label="crew table">
@@ -452,18 +496,32 @@ export default function CrewManagementLayout() {
 
           <Modal open={openAddModal} onClose={handleCloseAddModal}>
             <Box sx={modalStyle}>
-              <Typography
-                variant="h6"
-                component="h2"
-                mb={3}
-                fontWeight={600}
+              <Box
                 sx={{
-                  fontFamily: "var(--font-primary) !important",
-                  color: COLORS.TEXT_PRIMARY,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 3,
                 }}
               >
-                Add New Crew Member
-              </Typography>
+                <Typography
+                  variant="h6"
+                  component="h2"
+                  fontWeight={600}
+                  sx={{
+                    fontFamily: "var(--font-primary) !important",
+                    color: COLORS.TEXT_PRIMARY,
+                  }}
+                >
+                  Add New Crew Member
+                </Typography>
+                <IconButton
+                  onClick={handleCloseAddModal}
+                  sx={{ color: COLORS.TEXT_PRIMARY }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
               <form onSubmit={formik.handleSubmit}>
                 <Stack spacing={2}>
                   <Stack direction="row" spacing={2}>
@@ -596,9 +654,9 @@ export default function CrewManagementLayout() {
                     </Typography>
                   </Box>
                 ) : detailsLoading ? (
-                  <Typography align="center" sx={commonStyles}>
-                    Loading details...
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                    <CircularProgress size={40} sx={{ color: COLORS.ACCENT }} />
+                  </Box>
                 ) : (
                   <>
                     <Box>
@@ -665,6 +723,52 @@ export default function CrewManagementLayout() {
                         {selectedCrewDetails?.role || "Crew"}
                       </Typography>
                     </Box>
+                    {selectedCrewDetails?.ship && (
+                      <>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Ship Name
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: COLORS.TEXT_PRIMARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            {selectedCrewDetails?.ship?.name || "N/A"}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Ship IMO
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: COLORS.TEXT_PRIMARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            {selectedCrewDetails?.ship?.IMO || "N/A"}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
                   </>
                 )}
               </Stack>

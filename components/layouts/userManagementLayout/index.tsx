@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -23,29 +24,38 @@ import {
   Snackbar,
   Alert,
   AlertColor,
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Drawer,
 } from "@mui/material";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
-import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
 import { COLORS } from "@/utils/enum";
 
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { fetchUsers, updateUser, clearError, fetchUserDetails } from "@/redux/slices/userSlice";
+import { fetchUsers, updateUser, clearError } from "@/redux/slices/userSlice";
 
 export default function UserManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
-  const { users, loading, error, selectedUserDetails, detailsLoading } = useSelector(
+  const router = useRouter();
+  const { users, loading, error } = useSelector(
     (state: RootState) => state.user
   );
 
-  const [openViewModal, setOpenViewModal] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -81,17 +91,10 @@ export default function UserManagementLayout() {
   }, [error, dispatch]);
 
   const handleOpenView = (user: any) => {
-    setSelectedUser(user);
-    setIsEditing(false);
-    setOpenViewModal(true);
-    dispatch(fetchUserDetails({ id: user.id || user._id, role: user.role }));
+    router.push(`/users-management/${user.id || user._id}`);
   };
 
-  const handleCloseView = () => {
-    setSelectedUser(null);
-    setOpenViewModal(false);
-    setIsEditing(false);
-  };
+
 
   const handleToggleStatusClick = (user: any) => {
     setSelectedUser(user);
@@ -123,28 +126,17 @@ export default function UserManagementLayout() {
     color: COLORS.TEXT_PRIMARY,
   };
 
-  const modalStyle = {
-    position: "absolute" as "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: { xs: "90%", sm: 500 },
-    bgcolor: COLORS.WHITE,
-    color: COLORS.TEXT_PRIMARY,
-    boxShadow: 24,
-    border: `1px solid ${COLORS.ACCENT}`,
-    borderRadius: "10px",
-    p: 4,
-    outline: "none",
-    fontFamily: "var(--font-primary) !important",
-  };
+
 
   const confirmModalStyle = {
     position: "absolute" as "absolute",
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: 400,
+    width: "90%",
+    maxWidth: 400,
+    maxHeight: "90vh",
+    overflowY: "auto",
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     boxShadow: 24,
@@ -154,6 +146,8 @@ export default function UserManagementLayout() {
     border: `1px solid ${COLORS.ACCENT}`,
     textAlign: "center",
   };
+
+
 
   const textFieldSx = {
     "& .MuiOutlinedInput-root": {
@@ -183,27 +177,53 @@ export default function UserManagementLayout() {
   );
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Box
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: "260px",
+            height: "100%",
+            overflowY: "auto",
+            borderRight: `1px solid ${COLORS.FOREGROUND}`,
+            bgcolor: COLORS.WHITE,
+          }}
+        >
+          <Sidebar />
+        </Box>
+      )}
+
+      {/* Mobile Sidebar */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true,
+        }}
         sx={{
-          width: "20%",
-          height: "100%",
-          overflowY: "auto",
-          borderRight: `1px solid ${COLORS.FOREGROUND}`,
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: 260,
+            bgcolor: COLORS.WHITE,
+          },
         }}
       >
         <Sidebar />
-      </Box>
+      </Drawer>
 
       <Box
         sx={{
-          width: "80%",
-          height: "100%",
+          flexGrow: 1,
           display: "flex",
           flexDirection: "column",
+          width: isMobile ? "100%" : "calc(100% - 260px)",
+          height: "100%",
+          overflow: "hidden",
         }}
       >
-        <Navbar />
+        <Navbar onMenuClick={handleDrawerToggle} />
         <Box
           sx={{
             p: 3,
@@ -216,8 +236,10 @@ export default function UserManagementLayout() {
             sx={{
               mb: 4,
               display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: { xs: "flex-start", sm: "center" },
+              gap: 2,
             }}
           >
             <Typography variant="h4" fontWeight={700} sx={commonStyles}>
@@ -233,7 +255,7 @@ export default function UserManagementLayout() {
                 setPage(0);
               }}
               sx={{
-                width: 300,
+                width: { xs: "100%", sm: 300 },
                 ...textFieldSx,
               }}
             />
@@ -246,7 +268,7 @@ export default function UserManagementLayout() {
               bgcolor: COLORS.WHITE,
               border: `1px solid ${COLORS.FOREGROUND}`,
               borderRadius: "10px",
-              overflow: "hidden",
+              overflowX: "auto",
             }}
           >
             <Table>
@@ -388,152 +410,7 @@ export default function UserManagementLayout() {
             }}
           />
 
-          <Modal open={openViewModal} onClose={handleCloseView}>
-            <Box sx={modalStyle}>
-              <Box
-                sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}
-              >
-                <Typography variant="h6" fontWeight={600} sx={commonStyles}>
-                  {isEditing ? "Edit User Details" : "User Details"}
-                </Typography>
-                <Box>
-                  {!isEditing && (
-                    <IconButton
-                      onClick={() => setIsEditing(true)}
-                      sx={{ color: COLORS.ACCENT }}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  )}
-                  <IconButton
-                    onClick={handleCloseView}
-                    sx={{ color: COLORS.TEXT_PRIMARY }}
-                  >
-                    <CloseIcon />
-                  </IconButton>
-                </Box>
-              </Box>
 
-              {isEditing ? (
-                <Stack spacing={2}>
-                  <TextField
-                    label="First Name"
-                    value={selectedUser?.firstName || ""}
-                    onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        firstName: e.target.value,
-                      })
-                    }
-                    sx={textFieldSx}
-                  />
-                  <TextField
-                    label="Last Name"
-                    value={selectedUser?.lastName || ""}
-                    onChange={(e) =>
-                      setSelectedUser({
-                        ...selectedUser,
-                        lastName: e.target.value,
-                      })
-                    }
-                    sx={textFieldSx}
-                  />
-                  <TextField
-                    label="Role"
-                    value={selectedUser?.role || ""}
-                    onChange={(e) =>
-                      setSelectedUser({ ...selectedUser, role: e.target.value })
-                    }
-                    sx={textFieldSx}
-                  />
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    sx={{
-                      bgcolor: COLORS.ACCENT,
-                      color: COLORS.WHITE,
-                      borderRadius: "10px",
-                      textTransform: "none",
-                      fontFamily: "var(--font-primary) !important",
-                      "&:hover": { bgcolor: "#0052E0" },
-                    }}
-                    onClick={async () => {
-                      try {
-                        await dispatch(
-                          updateUser({
-                            id: selectedUser.id || selectedUser._id,
-                            data: {
-                              firstName: selectedUser.firstName,
-                              lastName: selectedUser.lastName,
-                              role: selectedUser.role,
-                            },
-                          })
-                        ).unwrap();
-                        showMessage("User updated successfully");
-                        setIsEditing(false);
-                      } catch (err: any) {
-                        showMessage(err || "Failed to update user", "error");
-                      }
-                    }}
-                  >
-                    Save Changes
-                  </Button>
-                </Stack>
-              ) : (
-                <Stack spacing={2}>
-                  {detailsLoading ? (
-                    <Typography align="center" sx={commonStyles}>Loading details...</Typography>
-                  ) : (
-                    <>
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Name
-                        </Typography>
-                        <Typography variant="body1" fontWeight={500} sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                          {selectedUserDetails?.firstName} {selectedUserDetails?.lastName}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Email
-                        </Typography>
-                        <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                          {selectedUserDetails?.email}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: COLORS.TEXT_SECONDARY,
-                            fontFamily: "var(--font-primary) !important",
-                          }}
-                        >
-                          Role
-                        </Typography>
-                        <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                          {selectedUserDetails?.role}
-                        </Typography>
-                      </Box>
-                    </>
-                  )}
-                </Stack>
-              )}
-            </Box>
-          </Modal>
 
           <Modal
             open={openConfirmModal}

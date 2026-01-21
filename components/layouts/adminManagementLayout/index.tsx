@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import Sidebar from "@/components/widgets/Sidebar";
@@ -25,6 +26,10 @@ import {
   Snackbar,
   Alert,
   AlertColor,
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Drawer,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
@@ -42,17 +47,25 @@ import {
 
 export default function AdminManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
   const { admins, loading, error, createLoading } = useSelector(
     (state: RootState) => state.admin
   );
 
   const [openAddModal, setOpenAddModal] = useState(false);
-  const [openViewModal, setOpenViewModal] = useState(false);
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
   const [userRole, setUserRole] = useState<string>("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -93,14 +106,11 @@ export default function AdminManagementLayout() {
   }, [error, dispatch]);
 
   const handleOpenView = (admin: any) => {
-    setSelectedAdmin(admin);
-    setOpenViewModal(true);
+    const id = admin._id || admin.id;
+    router.push(`/admin-management/${id}`);
   };
 
-  const handleCloseView = () => {
-    setSelectedAdmin(null);
-    setOpenViewModal(false);
-  };
+
 
   const handleToggleStatusClick = (admin: any) => {
     setSelectedAdmin(admin);
@@ -133,7 +143,8 @@ export default function AdminManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: 500,
+    width: "90%",
+    maxWidth: 500,
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     boxShadow: 24,
@@ -149,7 +160,8 @@ export default function AdminManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: 400,
+    width: "90%",
+    maxWidth: 400,
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     boxShadow: 24,
@@ -219,20 +231,53 @@ export default function AdminManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Box
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: "260px",
+            height: "100%",
+            overflowY: "auto",
+            borderRight: `1px solid ${COLORS.FOREGROUND}`,
+            bgcolor: COLORS.WHITE,
+          }}
+        >
+          <Sidebar />
+        </Box>
+      )}
+
+      {/* Mobile Sidebar */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
         sx={{
-          width: "20%",
-          height: "100%",
-          overflowY: "auto",
-          borderRight: `1px solid ${COLORS.FOREGROUND}`,
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: 260,
+            bgcolor: COLORS.WHITE,
+          },
         }}
       >
         <Sidebar />
-      </Box>
+      </Drawer>
 
-      <Box sx={{ width: "80%", display: "flex", flexDirection: "column" }}>
-        <Navbar />
+      <Box
+        sx={{
+          flexGrow: 1,
+          display: "flex",
+          flexDirection: "column",
+          width: isMobile ? "100%" : "calc(100% - 260px)",
+          height: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <Navbar onMenuClick={handleDrawerToggle} />
 
         <Box
           sx={{
@@ -246,8 +291,10 @@ export default function AdminManagementLayout() {
             sx={{
               mb: 4,
               display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: { xs: "flex-start", sm: "center" },
+              gap: 2,
             }}
           >
             <Typography
@@ -288,7 +335,7 @@ export default function AdminManagementLayout() {
               bgcolor: COLORS.WHITE,
               border: `1px solid ${COLORS.FOREGROUND}`,
               borderRadius: "10px",
-              overflow: "hidden",
+              overflowX: "auto",
             }}
           >
             <Table>
@@ -423,9 +470,24 @@ export default function AdminManagementLayout() {
           {/* ADD MODAL */}
           <Modal open={openAddModal} onClose={() => setOpenAddModal(false)}>
             <Box sx={modalStyle}>
-              <Typography variant="h6" mb={3} sx={commonStyles} fontWeight={600}>
-                Add New Admin
-              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 3,
+                }}
+              >
+                <Typography variant="h6" sx={commonStyles} fontWeight={600}>
+                  Add New Admin
+                </Typography>
+                <IconButton
+                  onClick={() => setOpenAddModal(false)}
+                  sx={{ color: COLORS.TEXT_PRIMARY }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
 
               <form onSubmit={formik.handleSubmit} autoComplete="off">
                 <Stack spacing={2}>
@@ -497,50 +559,7 @@ export default function AdminManagementLayout() {
             </Box>
           </Modal>
 
-          {/* VIEW MODAL */}
-          <Modal open={openViewModal} onClose={handleCloseView}>
-            <Box sx={modalStyle}>
-              {selectedAdmin && (
-                <>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 3,
-                    }}
-                  >
-                    <Typography variant="h6" sx={commonStyles} fontWeight={600}>
-                      Admin Details
-                    </Typography>
-                    <IconButton
-                      onClick={handleCloseView}
-                      sx={{ color: COLORS.TEXT_PRIMARY }}
-                    >
-                      <CloseIcon />
-                    </IconButton>
-                  </Box>
 
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Name</Typography>
-                      <Typography variant="body1" fontWeight={500} sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                        {selectedAdmin.name || `${selectedAdmin.firstName} ${selectedAdmin.lastName}`}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Email</Typography>
-                      <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedAdmin.email}</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Role</Typography>
-                      <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedAdmin.role}</Typography>
-                    </Box>
-                  </Stack>
-                </>
-              )}
-            </Box>
-          </Modal>
 
           {/* Confirmation Pop-up */}
           <Modal

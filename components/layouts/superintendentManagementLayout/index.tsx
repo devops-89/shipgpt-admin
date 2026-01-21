@@ -25,6 +25,10 @@ import {
   Snackbar,
   Alert,
   AlertColor,
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Drawer,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
@@ -39,11 +43,12 @@ import {
   createSuperintendent,
   clearError,
   updateSuperintendentStatus,
+  fetchSuperintendentDetails,
 } from "@/redux/slices/superintendentSlice";
 
 export default function SuperintendentManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
-  const { superintendents, loading, error, createLoading } = useSelector(
+  const { superintendents, loading, error, createLoading, detailsLoading, selectedSuperintendentDetails } = useSelector(
     (state: RootState) => state.superintendent
   );
 
@@ -56,6 +61,14 @@ export default function SuperintendentManagementLayout() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [userRole, setUserRole] = useState<string>("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -153,6 +166,7 @@ export default function SuperintendentManagementLayout() {
     setSelectedSuperintendent(member);
     setIsEditing(false);
     setOpenViewModal(true);
+    dispatch(fetchSuperintendentDetails({ id: member._id || member.id, role: member.role || "SUPERINTENDENT" }));
   };
 
   const handleEditClick = () => {
@@ -211,7 +225,10 @@ export default function SuperintendentManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: { xs: "90%", sm: 500 },
+    width: "90%",
+    maxWidth: 500,
+    maxHeight: "90vh",
+    overflowY: "auto",
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     fontFamily: "var(--font-primary) !important",
@@ -227,7 +244,10 @@ export default function SuperintendentManagementLayout() {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    width: 400,
+    width: "90%",
+    maxWidth: 400,
+    maxHeight: "90vh",
+    overflowY: "auto",
     bgcolor: COLORS.WHITE,
     color: COLORS.TEXT_PRIMARY,
     boxShadow: 24,
@@ -263,27 +283,53 @@ export default function SuperintendentManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Box
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Box
+          sx={{
+            width: "260px",
+            height: "100%",
+            overflowY: "auto",
+            borderRight: `1px solid ${COLORS.FOREGROUND}`,
+            bgcolor: COLORS.WHITE,
+          }}
+        >
+          <Sidebar />
+        </Box>
+      )}
+
+      {/* Mobile Sidebar */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
         sx={{
-          width: "20%",
-          height: "100%",
-          overflowY: "auto",
-          borderRight: `1px solid ${COLORS.FOREGROUND}`,
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": {
+            boxSizing: "border-box",
+            width: 260,
+            bgcolor: COLORS.WHITE,
+          },
         }}
       >
         <Sidebar />
-      </Box>
+      </Drawer>
 
       <Box
         sx={{
-          width: "80%",
-          height: "100%",
+          flexGrow: 1,
           display: "flex",
           flexDirection: "column",
+          width: isMobile ? "100%" : "calc(100% - 260px)",
+          height: "100%",
+          overflow: "hidden",
         }}
       >
-        <Navbar />
+        <Navbar onMenuClick={handleDrawerToggle} />
         <Box
           sx={{
             p: 3,
@@ -298,7 +344,7 @@ export default function SuperintendentManagementLayout() {
               display: "flex",
               flexDirection: { xs: "column", sm: "row" },
               justifyContent: "space-between",
-              alignItems: { xs: "start", sm: "center" },
+              alignItems: { xs: "flex-start", sm: "center" },
               gap: 2,
             }}
           >
@@ -336,7 +382,7 @@ export default function SuperintendentManagementLayout() {
               border: `1px solid ${COLORS.FOREGROUND}`,
               bgcolor: COLORS.WHITE,
               borderRadius: "10px",
-              overflow: "hidden",
+              overflowX: "auto",
             }}
           >
             <Table>
@@ -530,71 +576,102 @@ export default function SuperintendentManagementLayout() {
               <Stack spacing={2}>
                 {!openAddModal && !isEditing ? (
                   <>
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: COLORS.TEXT_SECONDARY,
-                          fontFamily: "var(--font-primary) !important",
-                        }}
-                      >
-                        Name
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        fontWeight={500}
-                        sx={{
-                          color: COLORS.TEXT_PRIMARY,
-                          fontFamily: "var(--font-primary) !important",
-                          fontSize: "1.1rem",
-                        }}
-                      >
-                        {selectedSuperintendent?.firstName}{" "}
-                        {selectedSuperintendent?.lastName}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: COLORS.TEXT_SECONDARY,
-                          fontFamily: "var(--font-primary) !important",
-                        }}
-                      >
-                        Email
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: COLORS.TEXT_PRIMARY,
-                          fontFamily: "var(--font-primary) !important",
-                          fontSize: "1.1rem",
-                        }}
-                      >
-                        {selectedSuperintendent?.email}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: COLORS.TEXT_SECONDARY,
-                          fontFamily: "var(--font-primary) !important",
-                        }}
-                      >
-                        Role
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: COLORS.TEXT_PRIMARY,
-                          fontFamily: "var(--font-primary) !important",
-                          fontSize: "1.1rem",
-                        }}
-                      >
-                        {selectedSuperintendent?.role || "Superintendent"}
-                      </Typography>
-                    </Box>
+                    {detailsLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress size={40} sx={{ color: COLORS.ACCENT }} />
+                      </Box>
+                    ) : selectedSuperintendentDetails ? (
+                      <>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Name</Typography>
+                          <Typography variant="body1" fontWeight={500} sx={{ ...commonStyles, fontSize: '1.1rem' }}>
+                            {selectedSuperintendentDetails.firstName} {selectedSuperintendentDetails.lastName}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Email</Typography>
+                          <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedSuperintendentDetails.email}</Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Role</Typography>
+                          <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedSuperintendentDetails.role}</Typography>
+                        </Box>
+                        {selectedSuperintendentDetails.phone && (
+                          <Box>
+                            <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Phone</Typography>
+                            <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedSuperintendentDetails.phone}</Typography>
+                          </Box>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Name
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            fontWeight={500}
+                            sx={{
+                              color: COLORS.TEXT_PRIMARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            {selectedSuperintendent?.firstName}{" "}
+                            {selectedSuperintendent?.lastName}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Email
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: COLORS.TEXT_PRIMARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            {selectedSuperintendent?.email}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Role
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: COLORS.TEXT_PRIMARY,
+                              fontFamily: "var(--font-primary) !important",
+                              fontSize: "1.1rem",
+                            }}
+                          >
+                            {selectedSuperintendent?.role || "Superintendent"}
+                          </Typography>
+                        </Box>
+                      </>
+                    )}
                   </>
                 ) : (
                   <form onSubmit={formik.handleSubmit}>

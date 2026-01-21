@@ -184,7 +184,7 @@ export default function LoginPage() {
         >
             <Card
                 sx={{
-                    width: 450, // Slightly wider to match reference
+                    width: { xs: "90%", sm: 450 }, // Slightly wider to match reference
                     minHeight: 450, // To maintain the substantial look of the card in the photo
                     backdropFilter: "blur(12px)",
                     background: "rgba(255, 255, 255, 0.15)",

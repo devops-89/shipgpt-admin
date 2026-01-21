@@ -52,11 +52,25 @@ export const updateAdminStatus = createAsyncThunk(
     }
 );
 
+export const fetchAdminDetails = createAsyncThunk(
+    "admin/fetchDetails",
+    async ({ id, role }: { id: string | number; role: string }, { rejectWithValue }) => {
+        try {
+            const response = await authControllers.getUserById(id, role);
+            return response.data?.data || response.data;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Failed to fetch admin details");
+        }
+    }
+);
+
 interface AdminState {
     admins: any[];
     loading: boolean;
     error: string | null;
     createLoading: boolean;
+    detailsLoading: boolean;
+    selectedAdminDetails: any | null;
 }
 
 const initialState: AdminState = {
@@ -64,6 +78,8 @@ const initialState: AdminState = {
     loading: false,
     error: null,
     createLoading: false,
+    detailsLoading: false,
+    selectedAdminDetails: null,
 };
 
 const adminSlice = createSlice({
@@ -111,6 +127,18 @@ const adminSlice = createSlice({
                     state.admins[adminIndex].isActive = status;
                     state.admins[adminIndex].status = status ? 'Active' : 'Inactive';
                 }
+            })
+            .addCase(fetchAdminDetails.pending, (state) => {
+                state.detailsLoading = true;
+                state.selectedAdminDetails = null;
+            })
+            .addCase(fetchAdminDetails.fulfilled, (state, action) => {
+                state.detailsLoading = false;
+                state.selectedAdminDetails = action.payload;
+            })
+            .addCase(fetchAdminDetails.rejected, (state, action) => {
+                state.detailsLoading = false;
+                state.error = action.payload as string;
             });
     },
 });
