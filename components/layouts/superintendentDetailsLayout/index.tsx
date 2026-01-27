@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
@@ -16,35 +16,60 @@ import {
     Button,
     Paper,
     Chip,
+    Divider,
+    Snackbar,
+    Alert,
+    AlertColor,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { COLORS } from "@/utils/enum";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { fetchUserDetails } from "@/redux/slices/userSlice";
+import { fetchSuperintendentDetails, clearError } from "@/redux/slices/superintendentSlice";
 
-export default function UserDetailsLayout() {
+export default function SuperintendentDetailsLayout() {
     const { id } = useParams();
     const router = useRouter();
     const dispatch = useDispatch<AppDispatch>();
-    const { detailsLoading, selectedUserDetails, error } = useSelector(
-        (state: RootState) => state.user
+    const { detailsLoading, selectedSuperintendentDetails, error } = useSelector(
+        (state: RootState) => state.superintendent
     );
 
-    const [mobileOpen, setMobileOpen] = React.useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+    const [snackbar, setSnackbar] = useState<{
+        open: boolean;
+        message: string;
+        severity: AlertColor;
+    }>({
+        open: false,
+        message: "",
+        severity: "success",
+    });
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
 
+    const handleCloseSnackbar = (event?: React.SyntheticEvent | Event, reason?: string) => {
+        if (reason === "clickaway") return;
+        setSnackbar((prev) => ({ ...prev, open: false }));
+    };
+
     useEffect(() => {
         if (id) {
-            dispatch(fetchUserDetails({ id: id as string, role: 'USER' }));
+            dispatch(fetchSuperintendentDetails({ id: id as string, role: 'SUPERINTENDENT' }));
         }
     }, [id, dispatch]);
 
+    useEffect(() => {
+        if (error) {
+            setSnackbar({ open: true, message: error, severity: "error" });
+            dispatch(clearError());
+        }
+    }, [error, dispatch]);
 
     const commonStyles = {
         fontFamily: "var(--font-primary) !important",
@@ -119,10 +144,10 @@ export default function UserDetailsLayout() {
                         </IconButton>
                         <Box>
                             <Typography variant="h4" fontWeight={800} sx={{ ...commonStyles, letterSpacing: '-0.5px' }}>
-                                User Profile
+                                Superintendent Profile
                             </Typography>
                             <Typography variant="body2" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: 'var(--font-primary)' }}>
-                                Detailed view of the user account and associated information
+                                View detailed information about the superintendent and their management roles
                             </Typography>
                         </Box>
                     </Box>
@@ -131,12 +156,7 @@ export default function UserDetailsLayout() {
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
                             <CircularProgress size={60} thickness={4} sx={{ color: COLORS.ACCENT }} />
                         </Box>
-                    ) : error ? (
-                        <Paper sx={{ p: 4, textAlign: 'center', borderRadius: '15px' }}>
-                            <Typography color="error" variant="h6" sx={commonStyles}>{error}</Typography>
-                            <Button variant="contained" onClick={() => window.location.reload()} sx={{ mt: 2, bgcolor: COLORS.ACCENT }}>Retry</Button>
-                        </Paper>
-                    ) : selectedUserDetails ? (
+                    ) : selectedSuperintendentDetails ? (
                         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '400px 1fr' }, gap: 3 }}>
                             {/* Left Column - User Info */}
                             <Stack spacing={3}>
@@ -158,7 +178,7 @@ export default function UserDetailsLayout() {
                                         left: 0,
                                         width: '100%',
                                         height: '100px',
-                                        background: `linear-gradient(45deg, #FF6B6B, #FFB84D)`,
+                                        background: `linear-gradient(45deg, #f093fb, #f5576c)`,
                                         opacity: 0.1
                                     }} />
 
@@ -167,30 +187,30 @@ export default function UserDetailsLayout() {
                                             sx={{
                                                 width: 100,
                                                 height: 100,
-                                                bgcolor: '#FF6B6B',
+                                                bgcolor: '#f5576c',
                                                 borderRadius: '30px',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                boxShadow: `0 10px 20px rgba(255, 107, 107, 0.2)`,
+                                                boxShadow: `0 10px 20px rgba(245, 87, 108, 0.2)`,
                                                 color: COLORS.WHITE,
                                                 fontSize: '2.5rem',
                                                 fontWeight: 800
                                             }}
                                         >
-                                            {(selectedUserDetails.firstName?.[0] || selectedUserDetails.name?.[0] || 'U').toUpperCase()}
+                                            {(selectedSuperintendentDetails.firstName?.[0] || selectedSuperintendentDetails.name?.[0] || 'S').toUpperCase()}
                                         </Box>
                                         <Box textAlign="center">
                                             <Typography variant="h5" fontWeight={700} sx={commonStyles}>
-                                                {selectedUserDetails.name || `${selectedUserDetails.firstName} ${selectedUserDetails.lastName}`}
+                                                {selectedSuperintendentDetails.name || `${selectedSuperintendentDetails.firstName} ${selectedSuperintendentDetails.lastName}`}
                                             </Typography>
                                             <Chip
-                                                label={selectedUserDetails.role}
+                                                label={selectedSuperintendentDetails.role}
                                                 size="small"
                                                 sx={{
                                                     mt: 1,
-                                                    bgcolor: 'rgba(255, 107, 107, 0.1)',
-                                                    color: '#FF6B6B',
+                                                    bgcolor: 'rgba(245, 87, 108, 0.1)',
+                                                    color: '#f5576c',
                                                     fontWeight: 600,
                                                     borderRadius: '8px',
                                                     fontFamily: "var(--font-primary) !important",
@@ -205,17 +225,17 @@ export default function UserDetailsLayout() {
                                                 Email Address
                                             </Typography>
                                             <Typography variant="body1" sx={{ ...commonStyles, fontWeight: 500, mt: 0.5 }}>
-                                                {selectedUserDetails.email}
+                                                {selectedSuperintendentDetails.email}
                                             </Typography>
                                         </Box>
 
-                                        {selectedUserDetails.phone && (
+                                        {selectedSuperintendentDetails.phone && (
                                             <Box>
                                                 <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.7rem' }}>
                                                     Phone Number
                                                 </Typography>
                                                 <Typography variant="body1" sx={{ ...commonStyles, fontWeight: 500, mt: 0.5 }}>
-                                                    {selectedUserDetails.phone}
+                                                    {selectedSuperintendentDetails.phone}
                                                 </Typography>
                                             </Box>
                                         )}
@@ -225,11 +245,11 @@ export default function UserDetailsLayout() {
                                                 Account Status
                                             </Typography>
                                             <Chip
-                                                label={selectedUserDetails.isActive ? "Active" : "Inactive"}
+                                                label={selectedSuperintendentDetails.isActive ? "Active" : "Inactive"}
                                                 size="small"
                                                 sx={{
-                                                    bgcolor: selectedUserDetails.isActive ? '#e8f5e9' : '#ffebee',
-                                                    color: selectedUserDetails.isActive ? '#2e7d32' : '#c62828',
+                                                    bgcolor: selectedSuperintendentDetails.isActive ? '#e8f5e9' : '#ffebee',
+                                                    color: selectedSuperintendentDetails.isActive ? '#2e7d32' : '#c62828',
                                                     fontWeight: 700,
                                                     borderRadius: '6px'
                                                 }}
@@ -239,9 +259,9 @@ export default function UserDetailsLayout() {
                                 </Paper>
                             </Stack>
 
-                            {/* Right Column - Additional Details */}
+                            {/* Right Column - Assigned Ships (if any) or System Data */}
                             <Stack spacing={3}>
-                                {selectedUserDetails.ship && (
+                                {selectedSuperintendentDetails.ships && selectedSuperintendentDetails.ships.length > 0 && (
                                     <Paper
                                         elevation={0}
                                         sx={{
@@ -254,38 +274,21 @@ export default function UserDetailsLayout() {
                                     >
                                         <Typography variant="h6" fontWeight={700} sx={{ ...commonStyles, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                             <Box sx={{ width: 4, height: 24, bgcolor: COLORS.ACCENT, borderRadius: 2 }} />
-                                            Assigned Ship Details
+                                            Assigned Ships
                                         </Typography>
 
-                                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 4 }}>
-                                            <Box sx={{ p: 2.5, bgcolor: COLORS.FOREGROUND, borderRadius: '16px' }}>
-                                                <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    Ship Name
-                                                </Typography>
-                                                <Typography variant="h6" fontWeight={700} sx={{ ...commonStyles, mt: 1 }}>
-                                                    {selectedUserDetails.ship.name}
-                                                </Typography>
-                                            </Box>
-
-                                            <Box sx={{ p: 2.5, bgcolor: COLORS.FOREGROUND, borderRadius: '16px' }}>
-                                                <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    IMO Number
-                                                </Typography>
-                                                <Typography variant="h6" fontWeight={700} sx={{ ...commonStyles, mt: 1, color: COLORS.ACCENT }}>
-                                                    {selectedUserDetails.ship.IMO}
-                                                </Typography>
-                                            </Box>
+                                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                                            {selectedSuperintendentDetails.ships.map((ship: any) => (
+                                                <Box key={ship._id || ship.id} sx={{ p: 2.5, bgcolor: COLORS.FOREGROUND, borderRadius: '16px', border: `1px solid rgba(0,0,0,0.05)` }}>
+                                                    <Typography variant="subtitle1" fontWeight={700} sx={commonStyles}>
+                                                        {ship.name}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontWeight: 600 }}>
+                                                        IMO: <span style={{ color: COLORS.ACCENT }}>{ship.IMO || ship.imo}</span>
+                                                    </Typography>
+                                                </Box>
+                                            ))}
                                         </Box>
-
-                                        {selectedUserDetails.ship.logo && (
-                                            <Box sx={{ mt: 3, textAlign: 'center' }}>
-                                                <img
-                                                    src={selectedUserDetails.ship.logo}
-                                                    alt="Ship Logo"
-                                                    style={{ maxHeight: '60px', borderRadius: '8px' }}
-                                                />
-                                            </Box>
-                                        )}
                                     </Paper>
                                 )}
 
@@ -300,7 +303,7 @@ export default function UserDetailsLayout() {
                                     }}
                                 >
                                     <Typography variant="h6" fontWeight={700} sx={{ ...commonStyles, mb: 4, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                        <Box sx={{ width: 4, height: 24, bgcolor: '#9c27b0', borderRadius: 2 }} />
+                                        <Box sx={{ width: 4, height: 24, bgcolor: '#4caf50', borderRadius: 2 }} />
                                         System Metadata
                                     </Typography>
 
@@ -310,7 +313,7 @@ export default function UserDetailsLayout() {
                                                 Created At
                                             </Typography>
                                             <Typography variant="body1" sx={{ ...commonStyles, fontWeight: 500, mt: 0.5 }}>
-                                                {selectedUserDetails.createdAt ? new Date(selectedUserDetails.createdAt).toLocaleString() : 'N/A'}
+                                                {selectedSuperintendentDetails.createdAt ? new Date(selectedSuperintendentDetails.createdAt).toLocaleString() : 'N/A'}
                                             </Typography>
                                         </Box>
                                         <Box>
@@ -318,7 +321,7 @@ export default function UserDetailsLayout() {
                                                 Last Updated
                                             </Typography>
                                             <Typography variant="body1" sx={{ ...commonStyles, fontWeight: 500, mt: 0.5 }}>
-                                                {selectedUserDetails.updatedAt ? new Date(selectedUserDetails.updatedAt).toLocaleString() : 'N/A'}
+                                                {selectedSuperintendentDetails.updatedAt ? new Date(selectedSuperintendentDetails.updatedAt).toLocaleString() : 'N/A'}
                                             </Typography>
                                         </Box>
                                     </Box>
@@ -327,11 +330,22 @@ export default function UserDetailsLayout() {
                         </Box>
                     ) : (
                         <Paper sx={{ p: 4, textAlign: 'center', borderRadius: '15px' }}>
-                            <Typography sx={commonStyles}>No user details found.</Typography>
+                            <Typography sx={commonStyles}>No superintendent details found.</Typography>
                         </Paper>
                     )}
                 </Box>
             </Box>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={6000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled" sx={{ width: "100%", ...commonStyles, fontWeight: 500 }}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

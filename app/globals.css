@@ -74,16 +74,13 @@ h6 {
   /* Science Gothic for headings */
 }
 
-/* Force MUI components to respect these choices without ThemeRegistry */
+/* Force MUI components to respect Science Gothic font */
 .MuiTypography-h1,
 .MuiTypography-h2,
 .MuiTypography-h3,
 .MuiTypography-h4,
 .MuiTypography-h5,
-.MuiTypography-h6 {
-  font-family: var(--font-primary), sans-serif !important;
-}
-
+.MuiTypography-h6,
 .MuiTypography-body1,
 .MuiTypography-body2,
 .MuiTypography-button,
@@ -91,7 +88,20 @@ h6 {
 .MuiTypography-overline,
 .MuiButton-root,
 .MuiInputBase-root,
+.MuiInputBase-input,
+.MuiInputLabel-root,
 .MuiMenuItem-root,
-.MuiTableCell-root {
-  font-family: var(--font-secondary), sans-serif !important;
+.MuiTableCell-root,
+.MuiTablePagination-root,
+.MuiTablePagination-selectLabel,
+.MuiTablePagination-displayedRows,
+.MuiChip-root,
+.MuiChip-label,
+.MuiAlert-root,
+.MuiAlert-message,
+.MuiListItemText-root,
+.MuiListItemText-primary,
+.MuiListItemText-secondary,
+.MuiListItemButton-root {
+  font-family: var(--font-primary), sans-serif !important;
 }

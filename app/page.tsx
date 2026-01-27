@@ -482,9 +482,7 @@ export default function LoginPage() {
                 </CardContent>
             </Card>
 
-            <Backdrop sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }} open={loading}>
-                <CircularProgress color="inherit" />
-            </Backdrop>
+
 
             <Snackbar
                 open={snackbar.open}

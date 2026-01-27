@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { scienceGothic } from "@/utils/fonts";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import {
@@ -40,7 +41,7 @@ export default function UserManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const { users, loading, error } = useSelector(
-    (state: RootState) => state.user
+    (state: RootState) => state.user,
   );
 
   const [openConfirmModal, setOpenConfirmModal] = useState(false);
@@ -69,7 +70,7 @@ export default function UserManagementLayout() {
 
   const handleCloseSnackbar = (
     event?: React.SyntheticEvent | Event,
-    reason?: string
+    reason?: string,
   ) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -94,8 +95,6 @@ export default function UserManagementLayout() {
     router.push(`/users-management/${user.id || user._id}`);
   };
 
-
-
   const handleToggleStatusClick = (user: any) => {
     setSelectedUser(user);
     setOpenConfirmModal(true);
@@ -110,7 +109,7 @@ export default function UserManagementLayout() {
         updateUser({
           id: selectedUser.id || selectedUser._id,
           data: { isActive: !isActive },
-        })
+        }),
       ).unwrap();
 
       showMessage(`User ${!isActive ? "enabled" : "disabled"} successfully`);
@@ -125,8 +124,6 @@ export default function UserManagementLayout() {
     fontFamily: "var(--font-primary) !important",
     color: COLORS.TEXT_PRIMARY,
   };
-
-
 
   const confirmModalStyle = {
     position: "absolute" as "absolute",
@@ -146,8 +143,6 @@ export default function UserManagementLayout() {
     border: `1px solid ${COLORS.ACCENT}`,
     textAlign: "center",
   };
-
-
 
   const textFieldSx = {
     "& .MuiOutlinedInput-root": {
@@ -173,11 +168,19 @@ export default function UserManagementLayout() {
   const filteredUsers = users.filter((u: any) =>
     `${u.firstName} ${u.lastName} ${u.email}`
       .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+      .includes(searchQuery.toLowerCase()),
   );
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+    <Box
+      className={scienceGothic.className}
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        bgcolor: COLORS.FOREGROUND,
+      }}
+    >
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
@@ -338,18 +341,16 @@ export default function UserManagementLayout() {
                 ) : (
                   (rowsPerPage > 0
                     ? filteredUsers.slice(
-                      page * rowsPerPage,
-                      page * rowsPerPage + rowsPerPage
-                    )
+                        page * rowsPerPage,
+                        page * rowsPerPage + rowsPerPage,
+                      )
                     : filteredUsers
                   ).map((row: any, index: number) => (
                     <TableRow key={row._id || row.id || `user-${index}`}>
                       <TableCell sx={commonStyles}>
                         {row.firstName} {row.lastName}
                       </TableCell>
-                      <TableCell sx={commonStyles}>
-                        {row.email}
-                      </TableCell>
+                      <TableCell sx={commonStyles}>{row.email}</TableCell>
                       <TableCell align="center">
                         <Chip
                           label={row.role || "User"}
@@ -368,6 +369,15 @@ export default function UserManagementLayout() {
                             row.status === "Active" || row.isActive === true
                           }
                           onChange={() => handleToggleStatusClick(row)}
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked": {
+                              color: COLORS.ACCENT,
+                            },
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                              {
+                                backgroundColor: COLORS.ACCENT,
+                              },
+                          }}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -404,26 +414,38 @@ export default function UserManagementLayout() {
               ".MuiTablePagination-actions": {
                 color: COLORS.TEXT_PRIMARY,
               },
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                fontFamily: "var(--font-primary) !important"
-              }
+              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  fontFamily: "var(--font-primary) !important",
+                },
             }}
           />
-
-
 
           <Modal
             open={openConfirmModal}
             onClose={() => setOpenConfirmModal(false)}
           >
-            <Box sx={confirmModalStyle}>
-              <Typography fontWeight={700} sx={commonStyles} variant="h6" mb={2}>
+            <Box className={scienceGothic.className} sx={confirmModalStyle}>
+              <Typography
+                fontWeight={700}
+                sx={commonStyles}
+                variant="h6"
+                mb={2}
+              >
                 {selectedUser?.status === "Active"
                   ? "Disable User"
                   : "Enable User"}
               </Typography>
-              <Typography sx={{ my: 3, color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>
-                Are you sure you want to {selectedUser?.status === "Active" ? "disable" : "enable"} this user&#39;s account?
+              <Typography
+                sx={{
+                  my: 3,
+                  color: COLORS.TEXT_SECONDARY,
+                  fontFamily: "var(--font-primary) !important",
+                }}
+              >
+                Are you sure you want to{" "}
+                {selectedUser?.status === "Active" ? "disable" : "enable"} this
+                user&#39;s account?
               </Typography>
               <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
                 <Button

@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { scienceGothic } from "@/utils/fonts";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
 import { useFormik } from "formik";
@@ -48,9 +50,15 @@ import {
 
 export default function SuperintendentManagementLayout() {
   const dispatch = useDispatch<AppDispatch>();
-  const { superintendents, loading, error, createLoading, detailsLoading, selectedSuperintendentDetails } = useSelector(
-    (state: RootState) => state.superintendent
-  );
+  const router = useRouter();
+  const {
+    superintendents,
+    loading,
+    error,
+    createLoading,
+    detailsLoading,
+    selectedSuperintendentDetails,
+  } = useSelector((state: RootState) => state.superintendent);
 
   const [openAddModal, setOpenAddModal] = useState(false);
   const [openViewModal, setOpenViewModal] = useState(false);
@@ -82,7 +90,7 @@ export default function SuperintendentManagementLayout() {
 
   const handleCloseSnackbar = (
     event?: React.SyntheticEvent | Event,
-    reason?: string
+    reason?: string,
   ) => {
     if (reason === "clickaway") return;
     setSnackbar((prev) => ({ ...prev, open: false }));
@@ -142,7 +150,7 @@ export default function SuperintendentManagementLayout() {
             resultAction.payload?.id;
           if (newId) {
             await dispatch(
-              updateSuperintendentStatus({ id: newId, status: true })
+              updateSuperintendentStatus({ id: newId, status: true }),
             );
           }
 
@@ -163,10 +171,7 @@ export default function SuperintendentManagementLayout() {
   };
 
   const handleOpenView = (member: any) => {
-    setSelectedSuperintendent(member);
-    setIsEditing(false);
-    setOpenViewModal(true);
-    dispatch(fetchSuperintendentDetails({ id: member._id || member.id, role: member.role || "SUPERINTENDENT" }));
+    router.push(`/superintendent-management/${member._id || member.id}`);
   };
 
   const handleEditClick = () => {
@@ -203,11 +208,11 @@ export default function SuperintendentManagementLayout() {
         updateSuperintendentStatus({
           id: selectedSuperintendent.id || selectedSuperintendent._id,
           status: newStatus,
-        })
+        }),
       );
       if (updateSuperintendentStatus.fulfilled.match(resultAction)) {
         showMessage(
-          `Superintendent ${newStatus ? "enabled" : "disabled"} successfully`
+          `Superintendent ${newStatus ? "enabled" : "disabled"} successfully`,
         );
         setOpenConfirmModal(false);
         setSelectedSuperintendent(null);
@@ -283,7 +288,15 @@ export default function SuperintendentManagementLayout() {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+    <Box
+      className={scienceGothic.className}
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        bgcolor: COLORS.FOREGROUND,
+      }}
+    >
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
@@ -453,7 +466,7 @@ export default function SuperintendentManagementLayout() {
                   (rowsPerPage > 0
                     ? superintendents?.slice(
                       page * rowsPerPage,
-                      page * rowsPerPage + rowsPerPage
+                      page * rowsPerPage + rowsPerPage,
                     )
                     : superintendents
                   )?.map((row: any) => (
@@ -464,7 +477,11 @@ export default function SuperintendentManagementLayout() {
                       <TableCell
                         component="th"
                         scope="row"
-                        sx={{ fontWeight: 500, color: COLORS.TEXT_PRIMARY, fontFamily: "var(--font-primary) !important" }}
+                        sx={{
+                          fontWeight: 500,
+                          color: COLORS.TEXT_PRIMARY,
+                          fontFamily: "var(--font-primary) !important",
+                        }}
                       >
                         {row.firstName} {row.lastName}
                       </TableCell>
@@ -488,6 +505,15 @@ export default function SuperintendentManagementLayout() {
                             row.status === "Active" || row.isActive === true
                           }
                           onChange={() => handleToggleStatusClick(row)}
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked": {
+                              color: COLORS.ACCENT,
+                            },
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                            {
+                              backgroundColor: COLORS.ACCENT,
+                            },
+                          }}
                         />
                       </TableCell>
                       <TableCell align="center">
@@ -522,9 +548,10 @@ export default function SuperintendentManagementLayout() {
                 "& .MuiTablePagination-actions": {
                   color: COLORS.TEXT_PRIMARY,
                 },
-                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-                  fontFamily: "var(--font-primary) !important"
-                }
+                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                {
+                  fontFamily: "var(--font-primary) !important",
+                },
               }}
             />
           </TableContainer>
@@ -577,29 +604,90 @@ export default function SuperintendentManagementLayout() {
                 {!openAddModal && !isEditing ? (
                   <>
                     {detailsLoading ? (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                        <CircularProgress size={40} sx={{ color: COLORS.ACCENT }} />
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          py: 4,
+                        }}
+                      >
+                        <CircularProgress
+                          size={40}
+                          sx={{ color: COLORS.ACCENT }}
+                        />
                       </Box>
                     ) : selectedSuperintendentDetails ? (
                       <>
                         <Box>
-                          <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Name</Typography>
-                          <Typography variant="body1" fontWeight={500} sx={{ ...commonStyles, fontSize: '1.1rem' }}>
-                            {selectedSuperintendentDetails.firstName} {selectedSuperintendentDetails.lastName}
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Name
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            fontWeight={500}
+                            sx={{ ...commonStyles, fontSize: "1.1rem" }}
+                          >
+                            {selectedSuperintendentDetails.firstName}{" "}
+                            {selectedSuperintendentDetails.lastName}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Email</Typography>
-                          <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedSuperintendentDetails.email}</Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Email
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ ...commonStyles, fontSize: "1.1rem" }}
+                          >
+                            {selectedSuperintendentDetails.email}
+                          </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Role</Typography>
-                          <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedSuperintendentDetails.role}</Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: COLORS.TEXT_SECONDARY,
+                              fontFamily: "var(--font-primary) !important",
+                            }}
+                          >
+                            Role
+                          </Typography>
+                          <Typography
+                            variant="body1"
+                            sx={{ ...commonStyles, fontSize: "1.1rem" }}
+                          >
+                            {selectedSuperintendentDetails.role}
+                          </Typography>
                         </Box>
                         {selectedSuperintendentDetails.phone && (
                           <Box>
-                            <Typography variant="caption" sx={{ color: COLORS.TEXT_SECONDARY, fontFamily: "var(--font-primary) !important" }}>Phone</Typography>
-                            <Typography variant="body1" sx={{ ...commonStyles, fontSize: '1.1rem' }}>{selectedSuperintendentDetails.phone}</Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: COLORS.TEXT_SECONDARY,
+                                fontFamily: "var(--font-primary) !important",
+                              }}
+                            >
+                              Phone
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{ ...commonStyles, fontSize: "1.1rem" }}
+                            >
+                              {selectedSuperintendentDetails.phone}
+                            </Typography>
                           </Box>
                         )}
                       </>
@@ -785,7 +873,12 @@ export default function SuperintendentManagementLayout() {
             onClose={() => setOpenConfirmModal(false)}
           >
             <Box sx={confirmModalStyle}>
-              <Typography variant="h6" fontWeight={700} sx={commonStyles} mb={2}>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                sx={commonStyles}
+                mb={2}
+              >
                 {selectedSuperintendent?.status === "Active" ||
                   selectedSuperintendent?.isActive === true
                   ? "Disable Superintendent"

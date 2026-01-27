@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, useTheme, useMediaQuery, Drawer } from "@mui/material";
 import Sidebar from "@/components/widgets/Sidebar";
 import Navbar from "@/components/widgets/Navbar";
+import { scienceGothic } from "@/utils/fonts";
 import { COLORS } from "@/utils/enum";
 
 export default function DashboardLayout({
@@ -18,7 +19,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
+    <Box className={scienceGothic.className} sx={{ display: "flex", height: "100vh", overflow: "hidden", bgcolor: COLORS.FOREGROUND }}>
       {/* Desktop Sidebar */}
       {!isMobile && (
         <Box
